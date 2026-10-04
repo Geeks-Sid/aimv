@@ -1,0 +1,42 @@
+name: invoices
+description: "Bills, utility invoices, subscription invoices, payment due notices"
+priority: 9
+keywords:
+  - invoice
+  - bill
+  - utility bill
+  - amount due
+  - due date
+  - payment due
+  - subscription
+  - monthly bill
+  - electricity
+  - water bill
+  - internet bill
+  - rent
+  - insurance premium
+filename_patterns:
+  - "*invoice*"
+  - "*bill*"
+  - "*utility*"
+  - "*payment_due*"
+target_folder: "~/Documents/Financial/Invoices/{year}/{month}/"
+naming:
+  template: "{date}_{provider}_{description}.{ext}"
+  date_format: "%Y-%m-%d"
+  separator: "_"
+  case: title
+metadata_fields:
+  - date
+  - provider
+  - amount_due
+  - due_date
+  - invoice_number
+create_subfolders: true
+examples:
+  - input: "bill_march.pdf"
+    output: "2025-03-01_Comcast_Internet_Bill.pdf"
+    reasoning: "Content identified as Comcast internet bill for March"
+  - input: "INV-20250315.pdf"
+    output: "2025-03-15_AWS_Cloud_Services_Invoice.pdf"
+    reasoning: "AWS cloud services invoice with specific date extracted"

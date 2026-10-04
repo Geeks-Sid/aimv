@@ -1,0 +1,51 @@
+name: medical
+description: "Medical records, prescriptions, lab results, insurance documents, health reports"
+priority: 11
+keywords:
+  - prescription
+  - lab results
+  - medical record
+  - diagnosis
+  - health report
+  - insurance claim
+  - insurance card
+  - vaccination
+  - immunization
+  - radiology
+  - blood test
+  - doctor
+  - physician
+  - hospital
+  - clinic
+  - patient
+  - health insurance
+  - EOB
+  - explanation of benefits
+filename_patterns:
+  - "*prescription*"
+  - "*lab_result*"
+  - "*medical*"
+  - "*health*"
+  - "*diagnosis*"
+  - "*vaccination*"
+  - "*insurance_claim*"
+  - "*eob*"
+target_folder: "~/Documents/Medical/"
+naming:
+  template: "{date}_{provider}_{description}.{ext}"
+  date_format: "%Y-%m-%d"
+  separator: "_"
+  case: title
+metadata_fields:
+  - date
+  - provider
+  - patient_name
+  - document_type
+create_subfolders: false
+examples:
+  - input: "results_032025.pdf"
+    output: "2025-03-15_Quest_Diagnostics_Blood_Panel.pdf"
+    reasoning: "Lab results from Quest Diagnostics, flat in Medical/"
+  - input: "scan_001.pdf"
+    output: "2025-01-20_Dr_Smith_Prescription_Amoxicillin.pdf"
+    reasoning: "Scanned prescription, flat in Medical/"

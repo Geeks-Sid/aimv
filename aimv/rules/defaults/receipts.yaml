@@ -1,0 +1,43 @@
+name: receipts
+description: "Purchase receipts, return labels, order confirmations, transaction records"
+priority: 10
+keywords:
+  - receipt
+  - purchase
+  - order confirmation
+  - return label
+  - tracking number
+  - transaction
+  - payment confirmation
+  - proof of purchase
+  - refund
+  - shipping label
+filename_patterns:
+  - "*receipt*"
+  - "*invoice*"
+  - "*order*"
+  - "*purchase*"
+  - "*confirmation*"
+  - "*label*"
+target_folder: "~/Documents/Financial/Receipts/{year}/{month}/"
+naming:
+  template: "{date}_{vendor}_{description}.{ext}"
+  date_format: "%Y-%m-%d"
+  separator: "_"
+  case: title
+metadata_fields:
+  - date
+  - vendor
+  - amount
+  - order_number
+create_subfolders: true
+examples:
+  - input: "label.pdf"
+    output: "2025-01-15_Nike_Return_Label.pdf"
+    reasoning: "Extracted vendor (Nike) and type (return label) from content"
+  - input: "order-12345.pdf"
+    output: "2025-03-20_Amazon_Order_Confirmation_12345.pdf"
+    reasoning: "Identified as Amazon order, embedded order number in filename"
+  - input: "Document_scan_001.pdf"
+    output: "2025-02-10_Target_Purchase_Receipt.pdf"
+    reasoning: "Content analysis identified a Target store receipt"

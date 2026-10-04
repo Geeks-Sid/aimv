@@ -1,0 +1,40 @@
+name: bank_statements
+description: "Bank account statements, credit card statements, financial summaries"
+priority: 12
+keywords:
+  - bank statement
+  - account statement
+  - credit card statement
+  - account summary
+  - checking account
+  - savings account
+  - balance
+  - statement period
+  - account number
+  - routing number
+  - monthly statement
+  - quarterly statement
+filename_patterns:
+  - "*statement*"
+  - "*bank*"
+  - "*eStatement*"
+  - "*account_summary*"
+target_folder: "~/Documents/Financial/Bank_Statements/{bank_name}/{year}/"
+naming:
+  template: "{year}-{month}_{bank_name}_Statement.{ext}"
+  date_format: "%Y-%m"
+  separator: "_"
+  case: title
+metadata_fields:
+  - date
+  - bank_name
+  - account_type
+  - statement_period
+create_subfolders: true
+examples:
+  - input: "eStmt_2025-03.pdf"
+    output: "2025-03_Chase_Statement.pdf"
+    reasoning: "Identified Chase bank statement for March 2025 from content"
+  - input: "Statement_Download.pdf"
+    output: "2025-01_Bank_Of_America_Statement.pdf"
+    reasoning: "Content analysis found Bank of America checking account statement"

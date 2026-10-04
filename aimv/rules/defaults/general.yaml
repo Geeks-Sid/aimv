@@ -1,0 +1,23 @@
+name: general
+description: "Catch-all rule for files that don't match any specific category"
+priority: 0
+keywords: []
+filename_patterns: []
+target_folder: "~/Documents/"
+naming:
+  template: "{description}.{ext}"
+  date_format: "%Y-%m-%d"
+  separator: "_"
+  case: preserve
+metadata_fields:
+  - date
+  - description
+  - category
+create_subfolders: false
+examples:
+  - input: "Document_20250419_0001.pdf"
+    output: "Passport_Scan_20250419.pdf"
+    reasoning: "Content analysis identified this as a passport scan, placed directly in Documents/"
+  - input: "download.pdf"
+    output: "Tax_Form_W2_2024.pdf"
+    reasoning: "Content identified as a W-2 tax form, placed in Documents/ (or Financial/ if matched)"

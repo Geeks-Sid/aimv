@@ -1,0 +1,49 @@
+name: academic
+description: "Academic papers, homework, transcripts, lecture notes, coursework"
+priority: 8
+keywords:
+  - homework
+  - assignment
+  - solutions
+  - lecture
+  - syllabus
+  - transcript
+  - exam
+  - midterm
+  - final exam
+  - course
+  - semester
+  - professor
+  - university
+  - college
+filename_patterns:
+  - "*homework*"
+  - "*hw*"
+  - "*assignment*"
+  - "*lecture*"
+  - "*syllabus*"
+  - "*transcript*"
+  - "*solutions*"
+  - "*exam*"
+target_folder: "~/Documents/School/"
+naming:
+  template: "{description}_{identifier}.{ext}"
+  date_format: "%Y-%m-%d"
+  separator: "_"
+  case: title
+metadata_fields:
+  - course
+  - assignment_type
+  - date
+  - title
+create_subfolders: false
+examples:
+  - input: "HWSolutions10.2025.pdf"
+    output: "CS6515_HW10_Solutions.pdf"
+    reasoning: "Identified course and assignment from content, flat in School/"
+  - input: "lecture_notes_ch5.pdf"
+    output: "ML_Lecture_Notes_Ch5.pdf"
+    reasoning: "Cleaned up filename, stays flat in School/"
+  - input: "final_paper_draft.docx"
+    output: "Research_Paper_Draft_2025.docx"
+    reasoning: "Academic paper draft, flat in School/"

@@ -1,0 +1,40 @@
+name: photos
+description: "Photographs, screenshots, image files"
+priority: 5
+keywords:
+  - photo
+  - photograph
+  - screenshot
+  - camera
+  - picture
+  - image
+  - selfie
+  - portrait
+  - landscape
+  - vacation
+filename_patterns:
+  - "*IMG_*"
+  - "*DSC_*"
+  - "*DCIM*"
+  - "*screenshot*"
+  - "*Screen Shot*"
+  - "*photo*"
+  - "*PXL_*"
+target_folder: "~/Pictures/"
+naming:
+  template: "{date}_{description}.{ext}"
+  date_format: "%Y-%m-%d"
+  separator: "_"
+  case: lower
+metadata_fields:
+  - date
+  - description
+  - location
+create_subfolders: false
+examples:
+  - input: "IMG_20250315_143022.jpg"
+    output: "2025-03-15_afternoon_photo.jpg"
+    reasoning: "Extracted date from filename, flat in Pictures/"
+  - input: "Screen Shot 2025-03-20 at 10.30.15 AM.png"
+    output: "2025-03-20_screenshot.png"
+    reasoning: "macOS screenshot, flat in Pictures/"
