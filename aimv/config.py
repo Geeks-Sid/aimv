@@ -66,8 +66,14 @@ BATCH_CLASSIFICATION_WORKERS: int = int(
     os.getenv("AIMV_BATCH_WORKERS", "4")
 )
 
-# Decision provider. Laya can run in-process or through its Jev-compatible server.
-DECISION_PROVIDER: str = os.getenv("AIMV_DECISION_PROVIDER", "laya").strip().lower()
+# Decision providers. Jev is hosted by OpenRouter; Laya remains available locally.
+DECISION_PROVIDER: str = os.getenv("AIMV_DECISION_PROVIDER", "jev").strip().lower()
+OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_DECISIONS_URL: str = os.getenv(
+    "OPENROUTER_DECISIONS_URL",
+    "https://openrouter.ai/api/alpha/decisions",
+).strip()
+JEV_MODEL: str = os.getenv("JEV_MODEL", "typesafe/jev-1.13").strip()
 LAYA_BASE_URL: str = os.getenv("LAYA_BASE_URL", "").strip()
 LAYA_API_KEY: str = os.getenv("LAYA_API_KEY", "")
 LAYA_MODEL: str = os.getenv("LAYA_MODEL", "").strip()

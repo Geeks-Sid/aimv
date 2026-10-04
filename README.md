@@ -5,32 +5,33 @@ them into a stable human-readable taxonomy, applies consistent names, and record
 move for search and undo.
 
 Its managed organization tree contains **332 leaf buckets across 16 broad areas**. AIMV
-offers every bucket to Laya through a complete three-step decision tree: 16 Areas, then
+offers every bucket to Jev or Laya through a complete three-step decision tree: 16 Areas, then
 5–8 Categories in the selected Area, then 4 final Buckets. No folder is silently removed
-by a retrieval prefilter, and no individual choice exceeds Laya's 32-option schema limit.
+by a retrieval prefilter, and the largest choice contains only 16 options.
 
 ## What AIMV Does
 
 - Extracts filename, type, date, and text evidence; the generative fallback can also use
   visual evidence from PDFs and images.
-- Makes all 332 curated buckets reachable through bounded hierarchical Laya choices.
+- Makes all 332 curated buckets reachable through bounded hierarchical decisions.
 - Classifies multiple files concurrently with a configurable worker limit.
 - Commits moves in a controlled stage so prompts, logs, and index writes cannot race.
 - Organizes dated material by year or year/month beneath the semantic bucket.
 - Writes `.aimv-folder.yaml` into every managed folder for durable identity and search.
 - Uses stable bucket IDs instead of trusting model-generated filesystem paths.
-- Uses Laya locally or through its Jev-compatible `/v1/systemone` HTTP endpoint by
-  default.
+- Uses Jev through OpenRouter's hosted Decisions API by default.
+- Retains Laya as an optional local or self-hosted `/v1/systemone` provider.
 - Retains an optional generative-provider fallback, including strict Structured Outputs
   through OpenAI's Responses API at the official endpoint.
 - Logs moves, indexes organized files, supports dry runs, and can undo prior moves.
 
 ## Installation
 
-For an in-process Laya router (Python 3.10+):
+Install AIMV and configure an OpenRouter key:
 
 ```bash
-pip install "AI-mv[laya]"
+pip install AI-mv
+export OPENROUTER_API_KEY="sk-or-v1-..."
 ```
 
 For local development:
@@ -38,23 +39,33 @@ For local development:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e ".[laya]"
+pip install -e .
 ```
 
-Laya is the default decision provider. It can run in-process with no API configuration:
+Jev is the default decision provider:
 
 ```bash
 aimv init
 ```
 
-To share one Laya process among AIMV workers or machines, run Laya's HTTP server and
-point AIMV at it:
+The defaults are `OPENROUTER_DECISIONS_URL=https://openrouter.ai/api/alpha/decisions`
+and `JEV_MODEL=typesafe/jev-1.13`.
+
+To use open-weight Laya locally instead (Python 3.10+):
+
+```bash
+pip install "AI-mv[laya]"
+export AIMV_DECISION_PROVIDER=laya
+```
+
+To share one Laya process among AIMV workers or machines, run its HTTP server:
 
 ```bash
 pip install AI-mv "laya[serve]"
 LAYA_DEVICE=cuda LAYA_PRELOAD=1 laya-serve
 
 export LAYA_BASE_URL="http://127.0.0.1:8000"
+export AIMV_DECISION_PROVIDER=laya
 aimv init
 ```
 
@@ -226,7 +237,7 @@ enumerate files
   -> prepare evidence in parallel
   -> choose action and one of all 16 Areas
   -> choose one of 5–8 Categories, then one of 4 Buckets
-  -> run those decision paths concurrently across files
+  -> run those hosted or local decision paths concurrently across files
   -> validate typed decisions
   -> review medium-confidence decisions in input order
   -> commit filesystem moves sequentially
@@ -240,7 +251,7 @@ avoiding duplicate destinations, interleaved questions, or corrupted JSON state.
 Set the default concurrency with `AIMV_BATCH_WORKERS`; override it per invocation with
 `--workers`.
 
-## Laya Decisions and Folder Routes
+## Jev/Laya Decisions and Folder Routes
 
 Every final Bucket is an available outcome. AIMV does not flatten all 332 Buckets into
 one low-quality choice or discard possibilities with a top-K filter. Instead, each file
@@ -250,7 +261,7 @@ follows the complete Taxonomy hierarchy:
 16 Areas -> 5–8 Categories in the chosen Area -> 4 Buckets in the chosen Category
 ```
 
-Stable IDs are the machine choices. The final Laya criteria also contain the complete
+Stable IDs are the machine choices. The final choice criteria also contain the complete
 human-readable route, for example:
 
 ```text
@@ -265,10 +276,10 @@ The validated decision contains:
 - `year` and `month`: the document's subject date when one exists
 - `tags`, `confidence`, and short reasoning
 
-Laya performs typed classification rather than free-form text generation, so AIMV keeps
+Jev and Laya perform typed classification rather than free-form text generation, so AIMV keeps
 the original basename. It derives year/month locally from the filename or extracted
 content, then falls back to file modification time. The model never chooses an arbitrary
-absolute destination. Laya also does not inspect image pixels; image-only files are
+absolute destination. These providers also do not inspect image pixels; image-only files are
 classified from filename, type, dates, and other local metadata unless the visual-capable
 generative fallback is selected. AIMV resolves the selected bucket ID locally, applies
 its time-partition policy, confines it to the managed root, and produces a collision-free
@@ -276,9 +287,11 @@ destination.
 
 ### Provider Behavior
 
-- **Local Laya (default):** one lazily initialized `laya.Router`, shared by classification
+- **OpenRouter Jev (default):** three hosted Decisions API calls per moved file using
+  `typesafe/jev-1.13` and the complete hierarchy.
+- **Local Laya:** one lazily initialized `laya.Router`, shared by classification
   workers. The first call can preload model routes.
-- **Laya/Jev-compatible HTTP:** three `POST /v1/systemone` decisions per moved file,
+- **Self-hosted Laya HTTP:** three `POST /v1/systemone` decisions per moved file,
   using the same complete hierarchy and typed choice keys.
 - **Generative fallback:** set `AIMV_DECISION_PROVIDER=generative`. Official OpenAI uses
   the Responses API with a strict Structured Outputs schema; Google uses native
@@ -321,7 +334,7 @@ aimv sort --no-rules ~/Downloads/unknown.dat
 ```
 
 The taxonomy is authoritative for destinations. Legacy Rule target paths are guidance;
-Laya must still reach one of the managed Bucket IDs through the complete hierarchy.
+the decision provider must still reach one managed Bucket ID through the complete hierarchy.
 
 ## Safety Model
 

@@ -6,12 +6,13 @@ from aimv.classification.models import (
     ClassificationPlan,
     FileEvidence,
 )
-from aimv.classification.providers import LayaDecisionProvider
+from aimv.classification.providers import JevDecisionProvider, LayaDecisionProvider
 
 __all__ = [
     "ClassificationDecision",
     "ClassificationPlan",
     "FileClassifier",
     "FileEvidence",
+    "JevDecisionProvider",
     "LayaDecisionProvider",
 ]

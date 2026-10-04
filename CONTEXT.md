@@ -50,7 +50,7 @@ _Avoid_: Bucket, Category
 The small ranked selection of Buckets sent only to a generative fallback provider for one file.
 
 **Decision Path**:
-The complete Area → Category → Bucket sequence Laya traverses so every Bucket remains reachable without a flat 332-option choice.
+The complete Area → Category → Bucket sequence a typed decision provider traverses so every Bucket remains reachable without a flat 332-option choice.
 
 **Classification Decision**:
 A validated action, Bucket ID, filename, subject year/month, tags, confidence, and reasoning returned by a provider.
@@ -69,7 +69,7 @@ The controlled review, path resolution, filesystem move, log update, and index u
 - A **Category** contains four leaf **Buckets**.
 - A **Bucket** has exactly one **Bucket ID** and one **Folder Metadata** record.
 - A **Bucket** may contain many **Time Partitions**.
-- Laya receives **Evidence** and traverses one **Decision Path** covering the complete **Taxonomy**.
+- Jev or Laya receives **Evidence** and traverses one **Decision Path** covering the complete **Taxonomy**.
 - A generative fallback receives **Evidence** and one locally ranked **Candidate Set**.
 - Either provider chooses at most one **Bucket ID** in a **Classification Decision**.
 - A **Classification Plan** contains one file's **Evidence** and **Classification Decision**.

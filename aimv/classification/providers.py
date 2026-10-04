@@ -132,7 +132,12 @@ class LayaDecisionProvider:
         action = str(action_answer.get("choice") or "move")
         action_confidence = self._answer_confidence(action_answer)
         year, month = extract_subject_period(evidence)
-        route_name = (initial.get("routing") or {}).get("model") or self.model or "laya"
+        route_name = (
+            (initial.get("routing") or {}).get("model")
+            or initial.get("model")
+            or self.model
+            or "laya"
+        )
 
         if action != "move":
             return ClassificationDecision(
@@ -289,3 +294,41 @@ class LayaDecisionProvider:
         if value is None:
             value = answer.get("confidence", 0.0)
         return max(0.0, min(1.0, float(value)))
+
+
+class JevDecisionProvider(LayaDecisionProvider):
+    """Classify through OpenRouter's hosted Jev Decisions API."""
+
+    def __init__(
+        self,
+        catalog: TaxonomyCatalog,
+        api_key: str,
+        endpoint: str = "https://openrouter.ai/api/alpha/decisions",
+        model: str = "typesafe/jev-1.13",
+        timeout: int = 90,
+    ):
+        super().__init__(catalog=catalog, model=model, timeout=timeout)
+        self.api_key = api_key
+        self.endpoint = endpoint
+
+    def _predict(self, state: dict, questions: dict) -> dict:
+        if not self.api_key:
+            raise RuntimeError(
+                "OpenRouter Jev is selected but OPENROUTER_API_KEY is not set."
+            )
+        payload: Dict[str, Any] = {
+            "model": self.model,
+            "state": state,
+            "questions": questions,
+        }
+        request = Request(
+            self.endpoint,
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with urlopen(request, timeout=self.timeout) as response:
+            return json.loads(response.read().decode("utf-8"))

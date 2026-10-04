@@ -1,5 +1,8 @@
 # Laya traverses the complete taxonomy hierarchically
 
+Superseded as the default provider by ADR 0004. The hierarchy remains the same and Laya
+remains an optional local/self-hosted provider.
+
 Laya is AIMV's default decision provider. A move decision traverses three bounded choice
 levels: all 16 Areas, all five to eight Categories in the selected Area, and all four Buckets in
 the selected Category. The final choices include stable Bucket IDs and readable folder

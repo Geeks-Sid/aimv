@@ -8,7 +8,7 @@ from typing import Callable, List, Optional, Tuple
 from aimv import config
 from aimv.classification.classifier import FileClassifier
 from aimv.classification.models import ClassificationPlan
-from aimv.classification.providers import LayaDecisionProvider
+from aimv.classification.providers import JevDecisionProvider, LayaDecisionProvider
 from aimv.index.file_index import FileIndex
 from aimv.organization.committer import OrganizationCommitter, OrganizationOutcome
 from aimv.rules.models import CategoryRule
@@ -43,7 +43,15 @@ def create_file_classifier(
 ) -> FileClassifier:
     """Create the configured decision-provider adapter and classification Module."""
     provider_name = config.DECISION_PROVIDER
-    if provider_name == "laya":
+    if provider_name == "jev":
+        decision_provider = JevDecisionProvider(
+            catalog=catalog,
+            api_key=config.OPENROUTER_API_KEY,
+            endpoint=config.OPENROUTER_DECISIONS_URL,
+            model=config.JEV_MODEL,
+        )
+        helper = None
+    elif provider_name == "laya":
         decision_provider = LayaDecisionProvider(
             catalog=catalog,
             base_url=config.LAYA_BASE_URL,
@@ -58,7 +66,7 @@ def create_file_classifier(
     else:
         raise ValueError(
             f"Unsupported AIMV_DECISION_PROVIDER '{provider_name}'. "
-            "Use 'laya' or 'generative'."
+            "Use 'jev', 'laya', or 'generative'."
         )
     return FileClassifier(
         rules=rules,
