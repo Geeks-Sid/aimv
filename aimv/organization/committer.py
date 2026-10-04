@@ -56,6 +56,14 @@ class OrganizationCommitter:
         evidence = plan.evidence
         decision = plan.decision
 
+        if self.catalog.contains_path(evidence.path):
+            return OrganizationOutcome(
+                evidence.path,
+                "stayed",
+                "File is already inside the managed root",
+                bucket_id=decision.bucket_id,
+            )
+
         if decision.action == "stay":
             if (
                 decision.confidence < config.HIGH_CONFIDENCE
@@ -116,6 +124,10 @@ class OrganizationCommitter:
             filename = self._validated_filename(
                 evidence.name, decision.suggested_name
             )
+            if config.APPEND_DATE_TO_FILENAMES:
+                filename = self._append_date_suffix(
+                    filename, year, month, bucket.partition
+                )
         except (KeyError, ValueError) as error:
             return OrganizationOutcome(
                 evidence.path,
@@ -327,3 +339,16 @@ class OrganizationCommitter:
             counter += 1
             candidate = f"{stem}_{counter}{extension}"
         return candidate
+
+    @staticmethod
+    def _append_date_suffix(
+        filename: str, year: int, month: int, partition: str
+    ) -> str:
+        """Append a sortable subject date unless the basename already has its year."""
+        if partition not in {"year", "year_month"}:
+            return filename
+        stem, extension = os.path.splitext(filename)
+        if re.search(rf"(?<!\d){year}(?!\d)", stem):
+            return filename
+        suffix = f"{year}-{month:02d}" if partition == "year_month" else str(year)
+        return f"{stem}_{suffix}{extension}"

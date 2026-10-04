@@ -26,9 +26,12 @@ class HierarchyRouter:
     def __init__(
         self,
         action="move",
-        area="area.50",
-        category="category.50.20",
-        bucket="bucket.50.20.03",
+        area="50-money-and-finance",
+        category="50-money-and-finance/50-20-income-and-spending",
+        bucket=(
+            "50-money-and-finance/50-20-income-and-spending/"
+            "50-20-03-invoices-and-bills"
+        ),
     ):
         self.action = action
         self.area = area
@@ -84,8 +87,12 @@ def test_laya_considers_every_bucket_through_small_hierarchical_choices(tmp_path
     assert len(router.calls[1][1]["category_id"]["criteria"]) == 5
     assert len(router.calls[2][1]["bucket_id"]["criteria"]) == 4
     bucket_criteria = router.calls[2][1]["bucket_id"]["criteria"]
-    assert "folder route:" in bucket_criteria["bucket.50.20.03"]
-    assert "50.20.03 Invoices & Bills" in bucket_criteria["bucket.50.20.03"]
+    route = (
+        "50-money-and-finance/50-20-income-and-spending/"
+        "50-20-03-invoices-and-bills"
+    )
+    assert route in bucket_criteria
+    assert "folder route:" in bucket_criteria[route]
 
 
 def test_laya_stay_or_trash_stops_after_first_decision(tmp_path):
@@ -103,9 +110,12 @@ def test_laya_stay_or_trash_stops_after_first_decision(tmp_path):
 def test_laya_reaches_expanded_research_categories(tmp_path):
     catalog = TaxonomyCatalog.load_default(str(tmp_path / "AIMV"))
     router = HierarchyRouter(
-        area="area.70",
-        category="category.70.60",
-        bucket="bucket.70.60.02",
+        area="70-education-and-research",
+        category="70-education-and-research/70-60-grants-and-research-funding",
+        bucket=(
+            "70-education-and-research/70-60-grants-and-research-funding/"
+            "70-60-02-proposals-and-applications"
+        ),
     )
     provider = LayaDecisionProvider(catalog=catalog, router=router)
 
@@ -113,9 +123,30 @@ def test_laya_reaches_expanded_research_categories(tmp_path):
 
     assert decision.bucket_id == "bucket.70.60.02"
     assert len(router.calls[1][1]["category_id"]["criteria"]) == 8
-    assert "70.60.02 Proposals & Applications" in (
-        router.calls[2][1]["bucket_id"]["criteria"]["bucket.70.60.02"]
+    route = (
+        "70-education-and-research/70-60-grants-and-research-funding/"
+        "70-60-02-proposals-and-applications"
     )
+    assert route in router.calls[2][1]["bucket_id"]["criteria"]
+
+
+def test_tax_income_form_path_is_provider_visible_and_explicit(tmp_path):
+    catalog = TaxonomyCatalog.load_default(str(tmp_path / "AIMV"))
+    buckets = catalog.children("category.50.40", "bucket")
+
+    question = LayaDecisionProvider._choice_question(
+        "Which tax bucket?", buckets, include_route=True
+    )
+    route = (
+        "50-money-and-finance/50-40-taxes/"
+        "50-40-02-w-2-1099-and-income-forms"
+    )
+
+    assert route in question["criteria"]
+    assert "W-2" in question["criteria"][route]
+    assert "1099" in question["criteria"][route]
+    assert "K-1" in question["criteria"][route]
+    assert all(" " not in option for option in question["criteria"])
 
 
 def test_subject_period_falls_back_to_file_metadata():
@@ -133,6 +164,9 @@ def test_subject_period_supports_month_first_and_named_dates():
         2023,
         9,
     )
+    assert extract_subject_period(
+        _evidence(content="Statement period January 1 through January 31, 2024")
+    ) == (2024, 1)
 
 
 def test_openrouter_jev_uses_decisions_api_with_complete_hierarchy(
@@ -146,16 +180,29 @@ def test_openrouter_jev_uses_decisions_api_with_complete_hierarchy(
                 "model": "typesafe/jev-1.13-20260917",
                 "answers": {
                     "action": _choice("move", 0.98),
-                    "area_id": _choice("area.70", 0.95),
+                    "area_id": _choice("70-education-and-research", 0.95),
                 },
             },
             {
                 "model": "typesafe/jev-1.13-20260917",
-                "answers": {"category_id": _choice("category.70.60", 0.91)},
+                "answers": {
+                    "category_id": _choice(
+                        "70-education-and-research/"
+                        "70-60-grants-and-research-funding",
+                        0.91,
+                    )
+                },
             },
             {
                 "model": "typesafe/jev-1.13-20260917",
-                "answers": {"bucket_id": _choice("bucket.70.60.02", 0.89)},
+                "answers": {
+                    "bucket_id": _choice(
+                        "70-education-and-research/"
+                        "70-60-grants-and-research-funding/"
+                        "70-60-02-proposals-and-applications",
+                        0.89,
+                    )
+                },
             },
         ]
     )

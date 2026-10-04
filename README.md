@@ -17,7 +17,9 @@ by a retrieval prefilter, and the largest choice contains only 16 options.
 - Classifies multiple files concurrently with a configurable worker limit.
 - Commits moves in a controlled stage so prompts, logs, and index writes cannot race.
 - Organizes dated material by year or year/month beneath the semantic bucket.
+- Appends `_YYYY` or `_YYYY-MM` to filenames when the subject year is not already present.
 - Writes `.aimv-folder.yaml` into every managed folder for durable identity and search.
+- Treats every file already beneath the managed root as complete, without another model call.
 - Uses stable bucket IDs instead of trusting model-generated filesystem paths.
 - Uses Jev through OpenRouter's hosted Decisions API by default.
 - Retains Laya as an optional local or self-hosted `/v1/systemone` provider.
@@ -112,13 +114,17 @@ typical destination is immediately readable:
 
 ```text
 ~/AIMV/
-└── 50 Money & Finance/
-    └── 50.20 Income & Spending/
-        └── 50.20.03 Invoices & Bills/
+└── 50-money-and-finance/
+    └── 50-20-income-and-spending/
+        └── 50-20-03-invoices-and-bills/
             └── 2024/
                 └── 2024-07/
-                    └── 2024-07_vendor_invoice.pdf
+                    └── vendor_invoice_2024-07.pdf
 ```
+
+Generated folder names never contain spaces. Numeric code prefixes keep routes stable and
+easy to scan; kebab-case titles keep them shell-safe. Human display titles remain in each
+folder's metadata.
 
 The top-level areas are:
 
@@ -149,25 +155,22 @@ research governance, and collaboration. The full source taxonomy is in
 Research-focused routes include:
 
 ```text
-70 Education & Research/
-├── 70.30 Research/
-│   ├── 70.30.01 Research Papers
-│   ├── 70.30.02 Datasets
-│   ├── 70.30.03 Literature Reviews
-│   └── 70.30.04 Methods & Protocols
-├── 70.60 Grants & Research Funding/
-│   ├── 70.60.01 Opportunities & Solicitations
-│   ├── 70.60.02 Proposals & Applications
-│   ├── 70.60.03 Budgets, Biosketches & Support Documents
-│   └── 70.60.04 Awards, Reports & Closeout
-├── 70.70 Academic Career & Service/
-│   ├── 70.70.01 Recommendation Letters
-│   └── 70.70.02 Letters of Support & Collaboration
-└── 70.80 Research Governance & Collaboration/
-    ├── 70.80.01 Ethics, IRB & Consent
-    ├── 70.80.02 Data Management & Sharing Plans
-    ├── 70.80.03 Collaborator & Subaward Agreements
-    └── 70.80.04 Disclosures, COI & Compliance
+70-education-and-research/
+├── 70-30-research/
+│   ├── 70-30-01-research-papers
+│   ├── 70-30-02-datasets
+│   ├── 70-30-03-literature-reviews
+│   └── 70-30-04-methods-and-protocols
+├── 70-60-grants-and-research-funding/
+│   ├── 70-60-01-opportunities-and-solicitations
+│   ├── 70-60-02-proposals-and-applications
+│   ├── 70-60-03-budgets-biosketches-and-support-documents
+│   └── 70-60-04-awards-reports-and-closeout
+└── 70-80-research-governance-and-collaboration/
+    ├── 70-80-01-ethics-irb-and-consent
+    ├── 70-80-02-data-management-and-sharing-plans
+    ├── 70-80-03-collaborator-and-subaward-agreements
+    └── 70-80-04-disclosures-coi-and-compliance
 ```
 
 ### Inspect, Search, and Install
@@ -203,7 +206,7 @@ id: bucket.50.20.03
 code: 50.20.03
 title: Invoices & Bills
 kind: bucket
-relative_path: 50 Money & Finance/50.20 Income & Spending/50.20.03 Invoices & Bills
+relative_path: 50-money-and-finance/50-20-income-and-spending/50-20-03-invoices-and-bills
 parent_id: category.50.20
 purpose: Invoices & Bills within Income & Spending.
 aliases:
@@ -261,12 +264,11 @@ follows the complete Taxonomy hierarchy:
 16 Areas -> 5–8 Categories in the chosen Area -> 4 Buckets in the chosen Category
 ```
 
-Stable IDs are the machine choices. The final choice criteria also contain the complete
-human-readable route, for example:
+Canonical Routes are the typed provider choices. Every route is supplied by AIMV and maps
+to one stable internal Bucket ID, for example:
 
 ```text
-bucket.50.20.03
-50 Money & Finance/50.20 Income & Spending/50.20.03 Invoices & Bills
+50-money-and-finance/50-20-income-and-spending/50-20-03-invoices-and-bills
 ```
 
 The validated decision contains:
@@ -284,6 +286,42 @@ classified from filename, type, dates, and other local metadata unless the visua
 generative fallback is selected. AIMV resolves the selected bucket ID locally, applies
 its time-partition policy, confines it to the managed root, and produces a collision-free
 destination.
+
+Jev and Laya actually select a supplied Canonical Route. AIMV validates it against the
+catalog and stores the stable Bucket ID internally; an invented path is rejected.
+
+## Already-Managed Files and Review Queues
+
+The resolved current path is checked before any provider call. A file anywhere beneath
+the Managed Root returns `stay` immediately. Organization Commit repeats the check before
+prompting, moving, logging, or indexing, which protects against stale or externally
+constructed plans. A similarly named sibling such as `AIMV-old` is not considered managed.
+
+Files needing attention have dedicated non-date-partitioned routes under
+`00-intake-and-workflow`, including `unsorted-intake`, `needs-human-review`,
+`low-confidence`, `missing-context`, `unsupported-format`, `corrupt-files`, and
+`access-restricted`. Provider outages leave files at their source rather than moving an
+entire batch into review.
+
+## Filename Dates and Renaming
+
+Organization Commit appends `_YYYY` for yearly Buckets and `_YYYY-MM` for monthly Buckets
+when that year is not already in the basename. The extension is preserved. This works for
+Jev and Laya without generated text; the generative/OpenAI fallback may still propose a
+more descriptive safe basename first. Disable deterministic suffixes with
+`AIMV_APPEND_DATE_TO_FILENAMES=0`.
+
+Examples:
+
+```text
+W2.pdf                    -> W2_2024.pdf
+chase_statement.pdf       -> chase_statement_2024-07.pdf
+tax_return_2024.pdf       -> tax_return_2024.pdf
+```
+
+Bank and credit-card statements use year/month routes. Tax returns, W-2/W2, 1099 variants,
+Schedule K-1, deductions, credits, notices, payments, and correspondence use tax-year
+routes.
 
 ### Provider Behavior
 

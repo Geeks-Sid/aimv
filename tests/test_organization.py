@@ -10,7 +10,13 @@ from aimv.taxonomy.catalog import METADATA_FILENAME, TaxonomyCatalog
 from aimv.tracking.move_log import MoveLog
 
 
-def _plan(path, bucket_id="bucket.50.20.03", year=2024, month=7):
+def _plan(
+    path,
+    bucket_id="bucket.50.20.03",
+    year=2024,
+    month=7,
+    suggested_name="2024-07_vendor_invoice.pdf",
+):
     evidence = FileEvidence(
         path=str(path),
         name=path.name,
@@ -26,7 +32,7 @@ def _plan(path, bucket_id="bucket.50.20.03", year=2024, month=7):
         action="move",
         confidence=0.95,
         bucket_id=bucket_id,
-        suggested_name="2024-07_vendor_invoice.pdf",
+        suggested_name=suggested_name,
         tags=("invoice",),
         year=year,
         month=month,
@@ -109,3 +115,63 @@ def test_index_failure_rolls_back_file_and_compensates_move_log(tmp_path):
     assert source.exists()
     record = move_log.get_last(1)[0]
     assert record.reversed is True
+
+
+def test_commit_never_mutates_file_already_inside_managed_root(tmp_path):
+    root = tmp_path / "AIMV"
+    root.mkdir()
+    source = root / "already-managed.pdf"
+    source.write_text("managed")
+    catalog = TaxonomyCatalog.load_default(str(root))
+
+    outcome = OrganizationCommitter(
+        catalog,
+        confirm=lambda _prompt: (_ for _ in ()).throw(
+            AssertionError("managed files must not prompt")
+        ),
+    ).commit(_plan(source))
+
+    assert outcome.status == "stayed"
+    assert source.exists()
+    assert "already inside" in outcome.message
+
+
+def test_commit_appends_month_to_unrenamed_monthly_document(tmp_path):
+    source = tmp_path / "bank_statement.pdf"
+    source.write_text("statement")
+    catalog = TaxonomyCatalog.load_default(str(tmp_path / "AIMV"))
+
+    outcome = OrganizationCommitter(catalog, dry_run=True).commit(
+        _plan(
+            source,
+            bucket_id="bucket.50.10.01",
+            year=2024,
+            month=7,
+            suggested_name=None,
+        )
+    )
+
+    assert outcome.destination_path.endswith("bank_statement_2024-07.pdf")
+
+
+def test_commit_appends_year_to_tax_document_without_duplicating_existing_year(
+    tmp_path,
+):
+    source = tmp_path / "w2.pdf"
+    source.write_text("wage statement")
+    catalog = TaxonomyCatalog.load_default(str(tmp_path / "AIMV"))
+    committer = OrganizationCommitter(catalog, dry_run=True)
+
+    renamed = committer.commit(
+        _plan(
+            source,
+            bucket_id="bucket.50.40.02",
+            year=2024,
+            month=1,
+            suggested_name=None,
+        )
+    )
+    existing = committer._append_date_suffix("w2_2024.pdf", 2024, 1, "year")
+
+    assert renamed.destination_path.endswith("w2_2024.pdf")
+    assert existing == "w2_2024.pdf"

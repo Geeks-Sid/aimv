@@ -62,12 +62,12 @@ def extract_subject_period(evidence: FileEvidence) -> Tuple[int, int]:
     lowered = text.lower()
     for month_name, month in _MONTHS.items():
         match = re.search(
-            rf"\b{month_name}\b[^\d]{{0,16}}((?:19|20)\d{{2}})", lowered
+            rf"\b{month_name}\b.{{0,64}}?((?:19|20)\d{{2}})", lowered
         )
         if match:
             return int(match.group(1)), month
         match = re.search(
-            rf"((?:19|20)\d{{2}})[^a-z]{{0,8}}\b{month_name}\b", lowered
+            rf"((?:19|20)\d{{2}}).{{0,32}}?\b{month_name}\b", lowered
         )
         if match:
             return int(match.group(1)), month
@@ -259,7 +259,7 @@ class LayaDecisionProvider:
             "type": "choice",
             "instructions": instructions,
             "criteria": {
-                node.id: (
+                node.relative_path: (
                     f"{node.title}; {node.purpose}"
                     + (f"; folder route: {node.relative_path}" if include_route else "")
                 )
@@ -280,7 +280,7 @@ class LayaDecisionProvider:
     ) -> TaxonomyNode:
         selected = str(answer.get("choice") or "")
         for node in nodes:
-            if node.id == selected:
+            if node.id == selected or node.relative_path == selected:
                 return node
         raise ValueError(f"Laya selected unknown {level} {selected or '<empty>'}")
 

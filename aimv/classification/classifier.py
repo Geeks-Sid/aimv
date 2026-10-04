@@ -135,6 +135,18 @@ class FileClassifier:
 
     def classify(self, file_path: str) -> ClassificationPlan:
         evidence = self.prepare(file_path)
+        if self.catalog.contains_path(evidence.path):
+            return ClassificationPlan(
+                evidence,
+                ClassificationDecision(
+                    action="stay",
+                    confidence=1.0,
+                    reasoning="File is already inside the managed root",
+                    year=evidence.modified_year,
+                    month=evidence.modified_month,
+                ),
+                evidence.rule_name,
+            )
         needs_search = self.decision_provider is None or getattr(
             self.decision_provider, "uses_catalog_search", True
         )

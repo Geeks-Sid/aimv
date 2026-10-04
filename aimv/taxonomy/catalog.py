@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import asdict, dataclass, field
+import unicodedata
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -32,8 +33,10 @@ def _tokens(value: str) -> Tuple[str, ...]:
 
 
 def _safe_segment(code: str, title: str) -> str:
-    clean = re.sub(r"[\\/:*?\"<>|]+", "-", title).strip(" .-")
-    return f"{code} {clean}"
+    normalized = unicodedata.normalize("NFKD", title.replace("&", " and "))
+    ascii_title = normalized.encode("ascii", "ignore").decode("ascii").lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", ascii_title).strip("-") or "folder"
+    return f"{code.replace('.', '-')}-{slug}"
 
 
 def _code_sort_key(code: str) -> Tuple[int, ...]:
@@ -117,7 +120,14 @@ class TaxonomyCatalog:
             for node in installed.nodes:
                 existing = merged.get(node.id)
                 if existing and existing.kind == node.kind:
-                    merged[node.id] = node
+                    merged[node.id] = replace(
+                        existing,
+                        purpose=node.purpose or existing.purpose,
+                        aliases=node.aliases,
+                        tags=node.tags,
+                        include=node.include,
+                        exclude=node.exclude,
+                    )
             candidate = cls(list(merged.values()), expanded)
             if not candidate.validate():
                 catalog = candidate
@@ -233,7 +243,7 @@ class TaxonomyCatalog:
     def discover(cls, root: str) -> "TaxonomyCatalog":
         """Rebuild a catalog from hidden metadata files under an installed root."""
         expanded = os.path.abspath(os.path.expanduser(root))
-        nodes: List[TaxonomyNode] = []
+        nodes_by_id: Dict[str, TaxonomyNode] = {}
         for current, dirs, files in os.walk(expanded):
             dirs.sort()
             if METADATA_FILENAME not in files:
@@ -244,10 +254,16 @@ class TaxonomyCatalog:
                     data = yaml.safe_load(stream) or {}
                 if data.get("id") == "aimv.root":
                     continue
-                nodes.append(TaxonomyNode.from_metadata(data))
+                node = TaxonomyNode.from_metadata(data)
+                existing = nodes_by_id.get(node.id)
+                if existing is None or (
+                    any(character.isspace() for character in existing.relative_path)
+                    and not any(character.isspace() for character in node.relative_path)
+                ):
+                    nodes_by_id[node.id] = node
             except (OSError, KeyError, TypeError, yaml.YAMLError):
                 continue
-        return cls(nodes, expanded)
+        return cls(list(nodes_by_id.values()), expanded)
 
     @property
     def nodes(self) -> Tuple[TaxonomyNode, ...]:
@@ -277,6 +293,15 @@ class TaxonomyCatalog:
         if node is None or node.kind != "bucket":
             raise KeyError(f"Unknown bucket ID: {bucket_id}")
         return node.resolve(self.root)
+
+    def contains_path(self, path: str) -> bool:
+        """Return whether a resolved path is owned by the Managed Root."""
+        root = os.path.realpath(self.root)
+        candidate = os.path.realpath(os.path.abspath(os.path.expanduser(path)))
+        try:
+            return os.path.commonpath((root, candidate)) == root
+        except ValueError:
+            return False
 
     def validate(self) -> List[str]:
         errors: List[str] = []
@@ -391,6 +416,7 @@ class TaxonomyCatalog:
                 "include": [],
                 "exclude": [],
                 "partition": "none",
+                "path_style": "kebab-v1",
             },
             overwrite_metadata,
         )

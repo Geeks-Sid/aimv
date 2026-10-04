@@ -3,6 +3,7 @@ import pytest
 from aimv import core
 from aimv.classification.classifier import FileClassifier
 from aimv.classification.models import ClassificationDecision
+from aimv.taxonomy.catalog import TaxonomyCatalog
 
 
 def test_classification_decision_validates_typed_fields():
@@ -56,6 +57,9 @@ def test_hierarchical_provider_skips_candidate_search(tmp_path):
     source.write_bytes(b"test")
 
     class Catalog:
+        def contains_path(self, _path):
+            return False
+
         def search(self, *_args, **_kwargs):
             raise AssertionError("hierarchical Laya must not prefilter buckets")
 
@@ -95,3 +99,30 @@ def test_generative_helper_factory_returns_configured_helper(monkeypatch):
     assert isinstance(helper, FakeHelper)
     assert captured["usage_tracker"] is tracker
     assert captured["model_name"] == core.config.MODEL_NAME
+
+
+def test_file_already_in_managed_root_never_calls_provider(tmp_path):
+    root = tmp_path / "AIMV"
+    root.mkdir()
+    source = root / "already-managed.txt"
+    source.write_text("already managed")
+    catalog = TaxonomyCatalog.load_default(str(root))
+
+    class Provider:
+        uses_catalog_search = False
+
+        def decide(self, *_args):
+            raise AssertionError("managed files must not reach a provider")
+
+    classifier = FileClassifier(
+        rules=[],
+        catalog=catalog,
+        decision_provider=Provider(),
+        dependencies=(False, False, False),
+    )
+
+    decision = classifier.classify(str(source)).decision
+
+    assert decision.action == "stay"
+    assert decision.confidence == 1.0
+    assert "already inside" in decision.reasoning

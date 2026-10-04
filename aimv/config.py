@@ -65,6 +65,9 @@ TAXONOMY_CANDIDATE_LIMIT: int = int(
 BATCH_CLASSIFICATION_WORKERS: int = int(
     os.getenv("AIMV_BATCH_WORKERS", "4")
 )
+APPEND_DATE_TO_FILENAMES: bool = os.getenv(
+    "AIMV_APPEND_DATE_TO_FILENAMES", "1"
+).lower() in {"1", "true", "yes", "on"}
 
 # Decision providers. Jev is hosted by OpenRouter; Laya remains available locally.
 DECISION_PROVIDER: str = os.getenv("AIMV_DECISION_PROVIDER", "jev").strip().lower()

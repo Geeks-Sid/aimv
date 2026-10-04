@@ -124,7 +124,11 @@ areas:
         title: Banking & Cash
         buckets:
           - title: Bank Statements
-            aliases: [account statement, monthly statement]
+            purpose: Monthly and periodic statements for checking, savings, money-market, and other deposit accounts.
+            aliases: [account statement, monthly statement, checking statement, savings statement, deposit account statement]
+            include: [bank statement, credit union statement, statement period, opening balance, closing balance]
+            exclude: [credit card statement, brokerage statement]
+            partition: year_month
           - Checking Accounts
           - Savings Accounts
           - Cash Transfers
@@ -140,10 +144,37 @@ areas:
           - Budgets
       - code: "50.30"
         title: Credit & Debt
-        buckets: [Credit Cards, Loans, Mortgages, Credit Reports]
+        buckets:
+          - title: Credit Cards
+            purpose: Credit-card statements, transactions, agreements, fees, rewards, and account records.
+            aliases: [credit card statement, card statement, cardmember statement, revolving account]
+            include: [statement balance, minimum payment, payment due, credit limit]
+            partition: year_month
+          - Loans
+          - Mortgages
+          - Credit Reports
       - code: "50.40"
         title: Taxes
-        buckets: [Tax Returns, Income Forms, Deductions & Receipts, Tax Correspondence]
+        purpose: Federal, state, local, and international tax records organized by tax year.
+        aliases: [tax documents, IRS, revenue service, tax year]
+        partition: year
+        buckets:
+          - title: Returns & Schedules
+            purpose: Filed or draft federal, state, and local tax returns and their attached schedules.
+            aliases: [tax return, Form 1040, 1040-X, amended return, state return, local return]
+            include: ["1040", Schedule A, Schedule B, Schedule C, Schedule D, Schedule E, tax return]
+          - title: W-2, 1099 & Income Forms
+            purpose: Wage, contractor, investment, retirement, partnership, trust, and other tax-year income forms including W-2, 1099 variants, and Schedule K-1.
+            aliases: [W-2, W2, wage and tax statement, "1099", 1099-NEC, 1099-MISC, 1099-INT, 1099-DIV, 1099-R, K-1, Schedule K-1]
+            include: [employer wages, nonemployee compensation, interest income, dividend income, retirement distribution, partnership income, S corporation income, trust income]
+          - title: Deductions, Credits & Receipts
+            purpose: Evidence supporting tax deductions and credits for a specific tax year.
+            aliases: ["1098", 1098-T, mortgage interest, tuition statement, charitable donation, tax deduction, tax credit]
+            include: [deductible expense, donation receipt, education credit, childcare expense, medical expense, property tax]
+          - title: Notices, Payments & Correspondence
+            purpose: Tax authority notices, estimated payments, extensions, audits, refunds, and correspondence.
+            aliases: [IRS notice, tax notice, estimated tax, tax extension, audit letter, refund notice]
+            include: [CP notice, revenue department, payment voucher, extension confirmation, audit correspondence]
       - code: "50.50"
         title: Investments & Planning
         buckets: [Brokerage, Retirement, Financial Plans, Statements & Performance]

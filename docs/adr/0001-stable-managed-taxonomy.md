@@ -1,9 +1,10 @@
 # Stable managed taxonomy with bounded provider choices
 
 AIMV organizes files beneath a configurable dedicated Managed Root using stable Bucket
-IDs and human-readable numbered paths. The bundled Taxonomy contains more than 200 leaf
+IDs and human-readable, space-free, code-prefixed paths. The bundled Taxonomy contains more than 200 leaf
 Buckets, each described by hidden Folder Metadata. A typed decision provider receives
-the bounded levels of the entire hierarchy and chooses stable IDs; it never supplies an arbitrary destination
+the bounded levels of the entire hierarchy and chooses supplied Canonical Routes; its
+Adapter validates each route to a stable ID. It never supplies an arbitrary destination
 path. This isolates managed files from existing personal folders, bounds decision size,
 allows titles and paths to evolve without breaking identity, and makes path confinement
 enforceable.

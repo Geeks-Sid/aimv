@@ -11,6 +11,9 @@ keeping model decisions separate from filesystem mutation.
 The configured directory beneath which AIMV may create taxonomy folders and organize files.
 _Avoid_: Destination root, output directory
 
+**Managed File**:
+A file whose resolved current path is the Managed Root or any descendant. A Managed File is never classified or moved again unless a future explicit reclassification workflow is requested.
+
 **Taxonomy**:
 The versioned hierarchy of Areas, Categories, and Buckets available beneath the Managed Root.
 _Avoid_: Template, folder dump
@@ -29,6 +32,10 @@ _Avoid_: Folder option, category
 **Bucket ID**:
 The stable identifier used in Classification Decisions independently of a Bucket's display title or filesystem path.
 _Avoid_: Folder path
+
+**Canonical Route**:
+The validated, space-free relative path shown to a typed decision provider and resolved beneath the Managed Root. Provider Adapters convert it back to a Bucket ID before producing a Classification Decision.
+_Avoid_: Suggested folder, absolute destination
 
 **Folder Metadata**:
 The hidden `.aimv-folder.yaml` record that makes a managed folder self-describing and searchable.
@@ -68,17 +75,19 @@ The controlled review, path resolution, filesystem move, log update, and index u
 - An **Area** contains five to eight **Categories**.
 - A **Category** contains four leaf **Buckets**.
 - A **Bucket** has exactly one **Bucket ID** and one **Folder Metadata** record.
+- A **Bucket** has one space-free **Canonical Route** made of code-prefixed kebab-case segments.
 - A **Bucket** may contain many **Time Partitions**.
+- A **Managed File** produces a local `stay` decision without crossing a provider Seam.
 - Jev or Laya receives **Evidence** and traverses one **Decision Path** covering the complete **Taxonomy**.
 - A generative fallback receives **Evidence** and one locally ranked **Candidate Set**.
-- Either provider chooses at most one **Bucket ID** in a **Classification Decision**.
+- A typed provider chooses at most one **Canonical Route**; its Adapter validates that route and records the corresponding **Bucket ID** in a **Classification Decision**.
 - A **Classification Plan** contains one file's **Evidence** and **Classification Decision**.
 - An **Organization Commit** consumes one **Classification Plan**.
 
 ## Example Dialogue
 
-> **Developer:** "Should the classification worker return the full destination path?"
-> **Domain expert:** "No. It returns a **Bucket ID** and subject date in a **Classification Decision**. The **Organization Commit** resolves the readable path and creates the correct **Time Partition** beneath the **Managed Root**."
+> **Developer:** "Can Jev suggest an arbitrary destination?"
+> **Domain expert:** "No. Jev selects one supplied **Canonical Route**. The provider Adapter validates it to a **Bucket ID**, and the **Organization Commit** resolves the final path and **Time Partition** beneath the **Managed Root**."
 
 ## Flagged Ambiguities
 

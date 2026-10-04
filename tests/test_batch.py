@@ -2,12 +2,14 @@ import threading
 import time
 
 from aimv.batch import BatchOrganizer
+from aimv.classification.classifier import FileClassifier
 from aimv.classification.models import (
     ClassificationDecision,
     ClassificationPlan,
     FileEvidence,
 )
 from aimv.organization.committer import OrganizationOutcome
+from aimv.taxonomy.catalog import TaxonomyCatalog
 
 
 class ConcurrentClassifier:
@@ -57,3 +59,40 @@ def test_batch_classifies_concurrently_but_commits_in_input_order():
     assert committer.paths == paths
     assert summary.succeeded == len(paths)
     assert summary.failed == 0
+
+
+def test_mixed_batch_only_calls_provider_for_unmanaged_files(tmp_path):
+    root = tmp_path / "AIMV"
+    root.mkdir()
+    managed = root / "already-managed.txt"
+    unmanaged = tmp_path / "incoming.txt"
+    managed.write_text("managed")
+    unmanaged.write_text("incoming")
+    catalog = TaxonomyCatalog.load_default(str(root))
+
+    class Provider:
+        uses_catalog_search = False
+
+        def __init__(self):
+            self.paths = []
+
+        def decide(self, evidence, _matches):
+            self.paths.append(evidence.path)
+            return ClassificationDecision(action="stay", confidence=1.0)
+
+    provider = Provider()
+    classifier = FileClassifier(
+        rules=[],
+        catalog=catalog,
+        decision_provider=provider,
+        dependencies=(False, False, False),
+    )
+    committer = RecordingCommitter()
+
+    summary = BatchOrganizer(classifier, committer, workers=2).run(
+        [str(managed), str(unmanaged)]
+    )
+
+    assert provider.paths == [str(unmanaged)]
+    assert committer.paths == [str(managed), str(unmanaged)]
+    assert summary.succeeded == 2
