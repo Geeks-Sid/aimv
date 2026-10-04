@@ -1,0 +1,411 @@
+schema_version: 1
+name: AIMV Broad Personal Taxonomy
+description: A stable, searchable organization tree for personal and professional files.
+default_partition: year
+
+areas:
+  - code: "00"
+    title: Intake & Workflow
+    purpose: Temporary routing, review, and active workflow files.
+    aliases: [inbox, staging, triage]
+    partition: none
+    categories:
+      - code: "00.10"
+        title: Incoming
+        buckets: [Unsorted Intake, Needs Human Review, Low Confidence, Duplicate Candidates]
+      - code: "00.20"
+        title: Active Work
+        buckets: [Today, This Week, Waiting For, Follow Up]
+      - code: "00.30"
+        title: Processing
+        buckets: [To Scan, To Sign, To Submit, To Share]
+      - code: "00.40"
+        title: Exceptions
+        buckets: [Missing Context, Unsupported Format, Corrupt Files, Access Restricted]
+      - code: "00.50"
+        title: Completed Workflow
+        buckets: [Recently Filed, Recently Shared, Recently Reviewed, Ready To Archive]
+
+  - code: "10"
+    title: Personal & Identity
+    purpose: Personal identity, life administration, and individual records.
+    aliases: [personal records, identity documents]
+    categories:
+      - code: "10.10"
+        title: Identity & Vital Records
+        buckets: [Government Identification, Birth & Adoption, Citizenship & Immigration, Name & Status Changes]
+      - code: "10.20"
+        title: Personal Administration
+        buckets: [Personal Profiles, Memberships, Applications, Personal Correspondence]
+      - code: "10.30"
+        title: Credentials & Certifications
+        buckets: [Professional Licenses, Training Certificates, Awards & Honors, Background Checks]
+      - code: "10.40"
+        title: Estate & Legacy
+        buckets: [Wills & Trusts, Beneficiaries, Powers of Attorney, Legacy Instructions]
+      - code: "10.50"
+        title: Private Records
+        buckets: [Journals, Personal Notes, Sensitive Records, Private Archive]
+
+  - code: "20"
+    title: Home & Property
+    purpose: Residences, household operations, possessions, and property projects.
+    aliases: [household, real estate]
+    categories:
+      - code: "20.10"
+        title: Residence
+        buckets: [Purchase & Sale, Lease & Rental, Property Records, Floor Plans & Surveys]
+      - code: "20.20"
+        title: Household Operations
+        buckets: [Utilities, Internet & Communications, Maintenance Schedules, Household Contacts]
+      - code: "20.30"
+        title: Repairs & Improvements
+        buckets: [Repair Records, Renovation Projects, Contractor Quotes, Permits & Inspections]
+      - code: "20.40"
+        title: Possessions
+        buckets: [Home Inventory, Warranties & Manuals, Valuations & Appraisals, Storage & Moving]
+      - code: "20.50"
+        title: Safety & Security
+        buckets: [Security Systems, Emergency Plans, Incident Records, Safety Inspections]
+
+  - code: "30"
+    title: Family & Relationships
+    purpose: Family members, dependents, relationships, and shared life events.
+    aliases: [family records, dependents]
+    categories:
+      - code: "30.10"
+        title: Partner & Marriage
+        buckets: [Marriage Records, Shared Planning, Anniversaries, Relationship Correspondence]
+      - code: "30.20"
+        title: Children & Dependents
+        buckets: [Child Records, School & Childcare, Activities & Development, Custody & Support]
+      - code: "30.30"
+        title: Extended Family
+        buckets: [Parents & Guardians, Siblings, Relatives, Family History]
+      - code: "30.40"
+        title: Pets & Animals
+        buckets: [Veterinary Records, Registration & Adoption, Training & Care, Pet Expenses]
+      - code: "30.50"
+        title: Events & Milestones
+        buckets: [Births & Christenings, Weddings, Reunions, Memorials]
+
+  - code: "40"
+    title: Health & Wellness
+    purpose: Medical care, wellness, fitness, and health administration.
+    aliases: [medical, healthcare]
+    categories:
+      - code: "40.10"
+        title: Medical Records
+        buckets:
+          - Visit Summaries
+          - Diagnoses & Conditions
+          - title: Lab Results
+            aliases: [laboratory, blood test, blood panel, pathology]
+          - Imaging & Procedures
+      - code: "40.20"
+        title: Providers & Care
+        buckets: [Primary Care, Specialists, Dental & Vision, Therapy & Counseling]
+      - code: "40.30"
+        title: Medication & Treatment
+        buckets: [Prescriptions, Treatment Plans, Vaccinations, Medical Devices]
+      - code: "40.40"
+        title: Health Administration
+        buckets: [Insurance Claims, Benefits & Coverage, Referrals & Authorizations, Medical Bills]
+      - code: "40.50"
+        title: Fitness & Wellbeing
+        buckets: [Fitness Plans, Nutrition, Sleep & Recovery, Wellness Tracking]
+
+  - code: "50"
+    title: Money & Finance
+    purpose: Banking, income, spending, taxes, investments, and financial planning.
+    aliases: [financial, money]
+    categories:
+      - code: "50.10"
+        title: Banking & Cash
+        buckets:
+          - title: Bank Statements
+            aliases: [account statement, monthly statement]
+          - Checking Accounts
+          - Savings Accounts
+          - Cash Transfers
+      - code: "50.20"
+        title: Income & Spending
+        partition: year_month
+        buckets:
+          - Pay Statements
+          - title: Receipts
+            aliases: [purchase receipt, proof of purchase]
+          - title: Invoices & Bills
+            aliases: [vendor invoice, utility bill, amount due]
+          - Budgets
+      - code: "50.30"
+        title: Credit & Debt
+        buckets: [Credit Cards, Loans, Mortgages, Credit Reports]
+      - code: "50.40"
+        title: Taxes
+        buckets: [Tax Returns, Income Forms, Deductions & Receipts, Tax Correspondence]
+      - code: "50.50"
+        title: Investments & Planning
+        buckets: [Brokerage, Retirement, Financial Plans, Statements & Performance]
+
+  - code: "60"
+    title: Career & Employment
+    purpose: Employment history, job search, professional development, and work output.
+    aliases: [jobs, employment, career]
+    categories:
+      - code: "60.10"
+        title: Job Search
+        buckets: [Resumes & CVs, Cover Letters, Applications, Interviews]
+      - code: "60.20"
+        title: Employment Records
+        buckets: [Offers & Contracts, Policies & Handbooks, Reviews & Promotions, Separation Records]
+      - code: "60.30"
+        title: Compensation & Benefits
+        buckets: [Pay & Bonuses, Benefits, Equity & Incentives, Time Off]
+      - code: "60.40"
+        title: Professional Development
+        buckets: [Career Plans, Mentoring, Conferences, Continuing Education]
+      - code: "60.50"
+        title: Work Portfolio
+        buckets: [Projects, Presentations, Writing Samples, Accomplishments]
+
+  - code: "70"
+    title: Education & Research
+    purpose: Formal education, research operations, grants, academic careers, and scholarly work.
+    aliases: [school, academic, academia, scientist, investigator, learning]
+    categories:
+      - code: "70.10"
+        title: Enrollment & Administration
+        buckets: [Admissions, Registration, Tuition & Aid, Transcripts & Records]
+      - code: "70.20"
+        title: Courses & Coursework
+        buckets: [Syllabi, Lecture Notes, Assignments, Exams & Solutions]
+      - code: "70.30"
+        title: Research
+        buckets: [Research Papers, Datasets, Literature Reviews, Methods & Protocols]
+      - code: "70.40"
+        title: Writing & Publication
+        buckets: [Drafts, Citations & References, Submissions, Published Work]
+      - code: "70.50"
+        title: Independent Learning
+        buckets: [Books & Reading, Tutorials, Study Plans, Learning Notes]
+      - code: "70.60"
+        title: Grants & Research Funding
+        purpose: Funding opportunities, grant applications, supporting components, awards, and sponsor reporting.
+        aliases: [grants, funding, sponsored research]
+        buckets:
+          - title: Opportunities & Solicitations
+            aliases: [funding opportunity, FOA, RFA, RFP, call for proposals]
+          - title: Proposals & Applications
+            aliases: [grant proposal, grant application, specific aims, research strategy]
+          - title: Budgets, Biosketches & Support Documents
+            aliases: [budget justification, biosketch, facilities and resources, other support]
+          - title: Awards, Reports & Closeout
+            aliases: [notice of award, progress report, RPPR, final report, grant closeout]
+      - code: "70.70"
+        title: Academic Career & Service
+        purpose: Academic advancement, recommendation and support letters, peer review, and institutional service.
+        aliases: [faculty affairs, academic service, promotion]
+        buckets:
+          - title: Recommendation Letters
+            aliases: [reference letter, recommendation, referee letter]
+          - title: Letters of Support & Collaboration
+            aliases: [letter of support, collaboration letter, commitment letter]
+          - title: Appointments, Promotion & Tenure
+            aliases: [faculty appointment, promotion dossier, tenure packet, annual review]
+          - title: Peer Review & Committee Service
+            aliases: [manuscript review, study section, committee materials, reviewer comments]
+      - code: "70.80"
+        title: Research Governance & Collaboration
+        purpose: Human-subjects oversight, data stewardship, research partnerships, and required disclosures.
+        aliases: [research administration, compliance, collaboration]
+        buckets:
+          - title: Ethics, IRB & Consent
+            aliases: [institutional review board, human subjects, informed consent, ethics approval]
+          - title: Data Management & Sharing Plans
+            aliases: [DMP, data sharing plan, repository plan, retention plan]
+          - title: Collaborator & Subaward Agreements
+            aliases: [subaward, consortium agreement, MOU, data use agreement]
+          - title: Disclosures, COI & Compliance
+            aliases: [conflict of interest, disclosure, responsible conduct, compliance certification]
+
+  - code: "80"
+    title: Business & Operations
+    purpose: Organizations, clients, vendors, operations, and commercial administration.
+    aliases: [company, operations, business]
+    categories:
+      - code: "80.10"
+        title: Company Administration
+        buckets: [Formation & Governance, Policies, Registrations & Licenses, Strategy & Planning]
+      - code: "80.20"
+        title: Clients & Sales
+        buckets: [Leads & Prospects, Proposals & Quotes, Client Agreements, Deliverables]
+      - code: "80.30"
+        title: Vendors & Purchasing
+        buckets: [Vendor Profiles, Purchase Orders, Supplier Contracts, Vendor Invoices]
+      - code: "80.40"
+        title: Operations
+        buckets: [Standard Procedures, Projects, Metrics & Reports, Incident Management]
+      - code: "80.50"
+        title: People Operations
+        buckets: [Recruiting, Employee Records, Payroll, Training & Culture]
+
+  - code: "90"
+    title: Legal & Compliance
+    purpose: Legal agreements, disputes, regulatory obligations, and protected records.
+    aliases: [law, contracts, compliance]
+    categories:
+      - code: "90.10"
+        title: Agreements
+        buckets: [Executed Contracts, Contract Drafts, Amendments, Statements of Work]
+      - code: "90.20"
+        title: Legal Matters
+        buckets: [Legal Advice, Disputes & Claims, Court Filings, Evidence]
+      - code: "90.30"
+        title: Intellectual Property
+        buckets: [Trademarks, Patents, Copyright, Licenses]
+      - code: "90.40"
+        title: Compliance & Risk
+        buckets: [Policies & Controls, Audits, Regulatory Filings, Risk Assessments]
+      - code: "90.50"
+        title: Privacy & Security
+        buckets: [Privacy Requests, Consent Records, Security Reviews, Breach Records]
+
+  - code: "100"
+    title: Technology & Data
+    purpose: Software, hardware, accounts, data assets, and technical operations.
+    aliases: [tech, IT, computing]
+    categories:
+      - code: "100.10"
+        title: Hardware & Devices
+        buckets: [Computers, Mobile Devices, Networking, Peripherals]
+      - code: "100.20"
+        title: Software & Licenses
+        buckets: [Applications, License Keys, Installers, Release Notes]
+      - code: "100.30"
+        title: Accounts & Access
+        buckets: [Account Records, Access Requests, Recovery Information, Service Subscriptions]
+      - code: "100.40"
+        title: Data & Backups
+        buckets: [Datasets, Exports, Backups, Restore Records]
+      - code: "100.50"
+        title: Development & Operations
+        buckets: [Source Archives, Technical Documentation, Deployments, Logs & Diagnostics]
+
+  - code: "110"
+    title: Creative & Media
+    purpose: Images, audio, video, design, writing, and creative production.
+    aliases: [photos, media, creative]
+    categories:
+      - code: "110.10"
+        title: Photography
+        partition: year_month
+        buckets:
+          - title: Original Photos
+            aliases: [photographs, camera originals]
+          - Edited Photos
+          - Photo Exports
+          - Photo Projects
+      - code: "110.20"
+        title: Video
+        partition: year_month
+        buckets: [Raw Footage, Video Projects, Final Videos, Captions & Transcripts]
+      - code: "110.30"
+        title: Audio
+        buckets: [Recordings, Music, Podcasts, Audio Projects]
+      - code: "110.40"
+        title: Design & Graphics
+        buckets: [Brand Assets, Illustrations, Layouts & Templates, Exported Graphics]
+      - code: "110.50"
+        title: Writing & Content
+        buckets: [Articles & Essays, Scripts, Content Plans, Final Publications]
+
+  - code: "120"
+    title: Travel & Transportation
+    purpose: Trips, vehicles, transit, reservations, and travel memories.
+    aliases: [trips, vehicle, transport]
+    categories:
+      - code: "120.10"
+        title: Trip Planning
+        buckets: [Itineraries, Destination Research, Packing & Checklists, Travel Budgets]
+      - code: "120.20"
+        title: Reservations
+        partition: year_month
+        buckets: [Flights, Lodging, Ground Transport, Activities & Tickets]
+      - code: "120.30"
+        title: Travel Documents
+        buckets: [Passports & Visas, Travel Insurance, Confirmations, Expense Records]
+      - code: "120.40"
+        title: Vehicles
+        buckets: [Ownership & Registration, Service & Repairs, Insurance, Fuel & Mileage]
+      - code: "120.50"
+        title: Trip Archive
+        buckets:
+          - title: Travel Photos
+            aliases: [vacation photographs, trip pictures]
+          - Travel Journals
+          - Maps & Guides
+          - Completed Trips
+
+  - code: "130"
+    title: Community & Civic Life
+    purpose: Government, civic participation, volunteering, groups, and local community.
+    aliases: [community, government, civic]
+    categories:
+      - code: "130.10"
+        title: Government Services
+        buckets: [Agency Correspondence, Benefits & Assistance, Permits, Public Records]
+      - code: "130.20"
+        title: Voting & Civic Participation
+        buckets: [Voter Records, Elections, Representatives, Public Comments]
+      - code: "130.30"
+        title: Volunteering
+        buckets: [Organizations, Applications & Checks, Schedules, Service Records]
+      - code: "130.40"
+        title: Clubs & Associations
+        buckets: [Memberships, Meetings, Events, Governance]
+      - code: "130.50"
+        title: Donations & Causes
+        buckets: [Charitable Giving, Donation Receipts, Campaigns, Impact Reports]
+
+  - code: "140"
+    title: Hobbies & Lifestyle
+    purpose: Recreation, collections, food, sports, and personal interests.
+    aliases: [leisure, recreation, interests]
+    categories:
+      - code: "140.10"
+        title: Arts & Crafts
+        buckets: [Projects, Patterns & Plans, Materials, Finished Work]
+      - code: "140.20"
+        title: Food & Cooking
+        buckets: [Recipes, Meal Plans, Restaurants, Food Projects]
+      - code: "140.30"
+        title: Sports & Outdoors
+        buckets: [Training, Events, Equipment, Routes & Adventures]
+      - code: "140.40"
+        title: Games & Entertainment
+        buckets: [Games, Movies & Shows, Books & Comics, Events & Tickets]
+      - code: "140.50"
+        title: Collections
+        buckets: [Collection Inventory, Purchases, Valuations, Research & Reference]
+
+  - code: "150"
+    title: Archive & Reference
+    purpose: Durable reference material, historical records, exports, and closed work.
+    aliases: [archive, records, reference]
+    categories:
+      - code: "150.10"
+        title: General Reference
+        buckets: [Manuals & Guides, Templates, Checklists, Reference Tables]
+      - code: "150.20"
+        title: Historical Archive
+        buckets: [Personal History, Family History, Organization History, Event History]
+      - code: "150.30"
+        title: Closed Projects
+        buckets: [Completed Personal Projects, Completed Work Projects, Cancelled Projects, Project Snapshots]
+      - code: "150.40"
+        title: Communications Archive
+        buckets: [Email Exports, Message Exports, Letters, Meeting Records]
+      - code: "150.50"
+        title: System Archive
+        buckets: [Legacy Exports, Migration Backups, Obsolete Formats, Retention Hold]

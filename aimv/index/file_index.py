@@ -117,8 +117,16 @@ class FileIndex:
     def add_entry(self, entry: IndexEntry) -> None:
         """Add or overwrite an index entry keyed by its path."""
         self._ensure_loaded()
+        previous = self._entries.get(entry.path)
         self._entries[entry.path] = entry
-        self.save()
+        try:
+            self.save()
+        except Exception:
+            if previous is None:
+                self._entries.pop(entry.path, None)
+            else:
+                self._entries[entry.path] = previous
+            raise
 
     def remove_entry(self, path: str) -> bool:
         """Remove an entry by path. Returns True if it existed."""

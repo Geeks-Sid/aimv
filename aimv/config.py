@@ -38,12 +38,16 @@ AIMV_INDEX_PATH: str = os.path.join(AIMV_DATA_DIR, "index.json")
 AIMV_TEMPLATE_PATH: str = os.path.join(AIMV_DATA_DIR, "template.yaml")
 AIMV_USER_RULES_DIR: str = os.path.join(AIMV_DATA_DIR, "rules")
 AIMV_USER_CONFIG_PATH: str = os.path.join(AIMV_DATA_DIR, "config.yaml")
+AIMV_TAXONOMY_ROOT: str = os.path.expanduser(
+    os.getenv("AIMV_TAXONOMY_ROOT", "~/AIMV")
+)
 
 # Feature toggles
 ENABLE_RULES_ENGINE: bool = True
 ENABLE_MOVE_LOGGING: bool = True
 ENABLE_FILE_INDEX: bool = True
 ENABLE_ORG_TEMPLATE: bool = True
+ENABLE_MANAGED_TAXONOMY: bool = True
 
 # Organization template settings
 TEMPLATE_SCAN_DEPTH: int = 3
@@ -53,6 +57,23 @@ TEMPLATE_ROOT_DIRS: List[str] = [
     "~/Desktop",
     "~/Pictures",
 ]
+
+# Managed taxonomy and concurrent classification
+TAXONOMY_CANDIDATE_LIMIT: int = int(
+    os.getenv("AIMV_TAXONOMY_CANDIDATE_LIMIT", "12")
+)
+BATCH_CLASSIFICATION_WORKERS: int = int(
+    os.getenv("AIMV_BATCH_WORKERS", "4")
+)
+
+# Decision provider. Laya can run in-process or through its Jev-compatible server.
+DECISION_PROVIDER: str = os.getenv("AIMV_DECISION_PROVIDER", "laya").strip().lower()
+LAYA_BASE_URL: str = os.getenv("LAYA_BASE_URL", "").strip()
+LAYA_API_KEY: str = os.getenv("LAYA_API_KEY", "")
+LAYA_MODEL: str = os.getenv("LAYA_MODEL", "").strip()
+LAYA_PRELOAD: bool = os.getenv("LAYA_PRELOAD", "1").lower() in {
+    "1", "true", "yes", "on"
+}
 
 # NVIDIA
 NVIDIA_API_KEY: str = os.getenv("NVIDIA_API_KEY", "")

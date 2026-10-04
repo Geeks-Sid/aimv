@@ -1,303 +1,384 @@
-Rewrite this entire markdown file, make it sensible to read and easy to read, the APP is called AIMV and needs heavy documentation `# 🧠 AI-mv — AI-powered File Organization Tool
+# AIMV
 
-`AI-mv` (Smart Move) is an intelligent file organization tool that automatically classifies, renames, and organizes your files based on their **actual contents** — not just filenames. It makes the decision process of "where should this file go?" effortless by analyzing content, context, and your existing folder structure.
+AIMV is an AI-assisted file organizer that classifies files by their contents, routes
+them into a stable human-readable taxonomy, applies consistent names, and records every
+move for search and undo.
 
-## ✅ Key Features
+Its managed organization tree contains **332 leaf buckets across 16 broad areas**. AIMV
+offers every bucket to Laya through a complete three-step decision tree: 16 Areas, then
+5–8 Categories in the selected Area, then 4 final Buckets. No folder is silently removed
+by a retrieval prefilter, and no individual choice exceeds Laya's 32-option schema limit.
 
-`AI-mv` goes beyond filenames. It reasons like a human:
+## What AIMV Does
 
-- **Analyzes textual and visual content** — Extracts and understands text from documents first, then falls back to visual analysis for PDFs and images when needed
-- **Matches files with your folder structure** — Finds the perfect location
-- **Maintains naming consistency** — Follows existing patterns in target folders
-- **Removes clutter** — Identifies disposable files for trash
-- **Human-in-the-loop** — Asks for input when uncertain and accepts human hints for better suggestions
-- **Rules engine** — Ships with category-specific rules (receipts, bank statements, invoices, academic papers, medical records, photos) that guide the AI with naming conventions, target folders, and metadata extraction
-- **Movement logging** — Every file operation is recorded in an append-only JSONL log with file hashes, timestamps, and full source/destination paths
-- **Reversible moves** — Undo any operation with `aimv undo`; the system validates file integrity via SHA-256 before reverting
-- **File index** — A searchable index tracks every organized file with a one-line description, category, and tags for fast lookup
-- **Organization templates** — Scans your folder structure and injects it into every AI prompt so suggestions stay consistent with your existing layout
-- **Dry-run mode** — Preview what the AI would do without moving anything
-- **Batch processing** — Organize an entire directory of files in one command
+- Extracts filename, type, date, and text evidence; the generative fallback can also use
+  visual evidence from PDFs and images.
+- Makes all 332 curated buckets reachable through bounded hierarchical Laya choices.
+- Classifies multiple files concurrently with a configurable worker limit.
+- Commits moves in a controlled stage so prompts, logs, and index writes cannot race.
+- Organizes dated material by year or year/month beneath the semantic bucket.
+- Writes `.aimv-folder.yaml` into every managed folder for durable identity and search.
+- Uses stable bucket IDs instead of trusting model-generated filesystem paths.
+- Uses Laya locally or through its Jev-compatible `/v1/systemone` HTTP endpoint by
+  default.
+- Retains an optional generative-provider fallback, including strict Structured Outputs
+  through OpenAI's Responses API at the official endpoint.
+- Logs moves, indexes organized files, supports dry runs, and can undo prior moves.
 
-## 📥 Installation
+## Installation
+
+For an in-process Laya router (Python 3.10+):
 
 ```bash
-# Install from PyPI
-pip install AI-mv
-
-# Or install directly from GitHub
-pip install git+https://github.com/geeks-sid/aimv.git
+pip install "AI-mv[laya]"
 ```
 
-After installing, initialize the data directory:
+For local development:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[laya]"
+```
+
+Laya is the default decision provider. It can run in-process with no API configuration:
 
 ```bash
 aimv init
 ```
 
-This creates `~/.aimv/` with the logs directory, rules directory, file index, and an initial scan of your folder structure.
-
-## 🚀 Usage
-
-### Organize files
+To share one Laya process among AIMV workers or machines, run Laya's HTTP server and
+point AIMV at it:
 
 ```bash
-# Organize a single file
-aimv sort ~/Downloads/document.pdf
+pip install AI-mv "laya[serve]"
+LAYA_DEVICE=cuda LAYA_PRELOAD=1 laya-serve
 
-# Shorthand (same as 'aimv sort')
-aimv ~/Downloads/document.pdf
+export LAYA_BASE_URL="http://127.0.0.1:8000"
+aimv init
+```
 
-# Preview without moving anything
+`LAYA_MODEL` optionally pins a Laya route/model, `LAYA_API_KEY` supplies a bearer token
+for a protected server, and `LAYA_PRELOAD=0` disables local eager loading.
+
+`aimv init` creates AIMV's state directory and materializes the managed tree under
+`~/AIMV` by default. Change the root before initialization when desired:
+
+```bash
+export AIMV_TAXONOMY_ROOT="$HOME/Documents/AIMV"
+aimv init
+```
+
+## Everyday Commands
+
+```bash
+# Preview one classification without creating folders or moving files
 aimv sort --dry-run ~/Downloads/document.pdf
 
-# Organize all files in a directory
-aimv batch ~/Downloads/
-```
+# Classify and organize one file
+aimv sort ~/Downloads/document.pdf
 
-### Undo moves
+# Classify directory contents with four concurrent workers
+aimv batch ~/Downloads --workers 4
 
-```bash
-# Undo the last move
+# Preview an entire batch
+aimv batch ~/Downloads --workers 4 --dry-run
+
+# Search files that AIMV has organized
+aimv index search "physics homework"
+
+# Undo the most recent move
 aimv undo
 
-# Undo a specific move by its log ID
-aimv undo --id abc123def456
-```
-
-### View history
-
-```bash
-# Show the last 10 operations
-aimv log
-
-# Show the last 20 operations
+# Inspect recent movement history
 aimv log --last 20
-
-# Search the log
-aimv log --search "nike receipt"
 ```
 
-### Search the file index
+## Managed Taxonomy
+
+The numeric prefix is a stable route and sort key. The title is the human meaning. A
+typical destination is immediately readable:
+
+```text
+~/AIMV/
+└── 50 Money & Finance/
+    └── 50.20 Income & Spending/
+        └── 50.20.03 Invoices & Bills/
+            └── 2024/
+                └── 2024-07/
+                    └── 2024-07_vendor_invoice.pdf
+```
+
+The top-level areas are:
+
+| Code | Area | Leaf buckets |
+| ---: | --- | ---: |
+| 00 | Intake & Workflow | 20 |
+| 10 | Personal & Identity | 20 |
+| 20 | Home & Property | 20 |
+| 30 | Family & Relationships | 20 |
+| 40 | Health & Wellness | 20 |
+| 50 | Money & Finance | 20 |
+| 60 | Career & Employment | 20 |
+| 70 | Education & Research | 32 |
+| 80 | Business & Operations | 20 |
+| 90 | Legal & Compliance | 20 |
+| 100 | Technology & Data | 20 |
+| 110 | Creative & Media | 20 |
+| 120 | Travel & Transportation | 20 |
+| 130 | Community & Civic Life | 20 |
+| 140 | Hobbies & Lifestyle | 20 |
+| 150 | Archive & Reference | 20 |
+
+Each area contains five to eight categories and each category contains four focused leaf
+buckets. The research branch includes grants and funding, letters, academic service,
+research governance, and collaboration. The full source taxonomy is in
+`aimv/taxonomy/defaults/personal.yaml`.
+
+Research-focused routes include:
+
+```text
+70 Education & Research/
+├── 70.30 Research/
+│   ├── 70.30.01 Research Papers
+│   ├── 70.30.02 Datasets
+│   ├── 70.30.03 Literature Reviews
+│   └── 70.30.04 Methods & Protocols
+├── 70.60 Grants & Research Funding/
+│   ├── 70.60.01 Opportunities & Solicitations
+│   ├── 70.60.02 Proposals & Applications
+│   ├── 70.60.03 Budgets, Biosketches & Support Documents
+│   └── 70.60.04 Awards, Reports & Closeout
+├── 70.70 Academic Career & Service/
+│   ├── 70.70.01 Recommendation Letters
+│   └── 70.70.02 Letters of Support & Collaboration
+└── 70.80 Research Governance & Collaboration/
+    ├── 70.80.01 Ethics, IRB & Consent
+    ├── 70.80.02 Data Management & Sharing Plans
+    ├── 70.80.03 Collaborator & Subaward Agreements
+    └── 70.80.04 Disclosures, COI & Compliance
+```
+
+### Inspect, Search, and Install
 
 ```bash
-# List all indexed files grouped by category
-aimv index list
+# Show the broad areas
+aimv taxonomy list
 
-# Search by keyword
-aimv index search "physics homework"
+# Search semantic routes without calling a model
+aimv taxonomy search "monthly Chase statement"
+aimv taxonomy search "blood panel laboratory result" --limit 5
+
+# Validate IDs, parents, paths, time policies, and minimum breadth
+aimv taxonomy validate
+
+# Install missing folders and metadata
+aimv taxonomy install
+
+# Refresh AIMV-owned metadata after a taxonomy update
+aimv taxonomy install --force
 ```
 
-### Manage rules
+Use `--root PATH` with taxonomy commands to inspect or install another managed root.
 
-```bash
-# List all loaded rules (defaults + your custom rules)
-aimv rules
+## Hidden Folder Metadata
 
-# Show details of a specific rule
-aimv rules --show receipts
-```
-
-### Organization template
-
-```bash
-# View the current folder structure template
-aimv template show
-
-# Regenerate the template from your filesystem
-aimv template generate
-```
-
-### Other
-
-```bash
-aimv --help          # Show help
-aimv -v              # Show version
-```
-
----
-
-## 📁 Rules Engine
-
-`AI-mv` ships with built-in rules for common file categories. Each rule defines:
-
-| Field | Purpose |
-|---|---|
-| **keywords** | Content keywords the AI uses to identify this file type |
-| **filename_patterns** | Glob patterns matched against the filename |
-| **target_folder** | Preferred destination (supports `{year}`, `{month}` placeholders) |
-| **naming convention** | Template for renaming (e.g. `{date}_{vendor}_{description}.{ext}`) |
-| **metadata_fields** | What the AI should extract from the content (date, vendor, amount...) |
-| **examples** | Input/output pairs that show the AI how to rename this type of file |
-
-### Built-in categories
-
-| Rule | Priority | Target folder | Example rename |
-|---|---|---|---|
-| **bank_statements** | 12 | `~/Documents/Financial/Bank_Statements/{bank}/{year}/` | `2025-03_Chase_Statement.pdf` |
-| **medical** | 11 | `~/Documents/Medical/{subcategory}/{year}/` | `2025-03-15_Quest_Diagnostics_Blood_Panel.pdf` |
-| **receipts** | 10 | `~/Documents/Financial/Receipts/{year}/{month}/` | `2025-01-15_Nike_Return_Label.pdf` |
-| **invoices** | 9 | `~/Documents/Financial/Invoices/{year}/{month}/` | `2025-03-01_Comcast_Internet_Bill.pdf` |
-| **academic** | 8 | `~/Documents/School/{course}/{category}/` | `SolnsHmwk10_2025.pdf` |
-| **photos** | 5 | `~/Pictures/{year}/{month}/` | `2025-03-15_afternoon_photo.jpg` |
-| **general** | 0 | `~/Documents/{category}/` | Catch-all with sensible defaults |
-
-### Custom rules
-
-Add your own YAML rule files to `~/.aimv/rules/`. They follow the same format as the defaults and will override any built-in rule with the same name, or be added as a new category.
+Every managed directory has a hidden `.aimv-folder.yaml`. Normal file browsing stays
+clean, while AIMV and other agents get a machine-readable description:
 
 ```yaml
-name: tax_documents
-description: "Tax forms, W-2s, 1099s, returns"
-priority: 13
-keywords: [tax, W-2, 1099, tax return, IRS, refund]
-filename_patterns: ["*tax*", "*w2*", "*1099*"]
-target_folder: "~/Documents/Financial/Taxes/{year}/"
-naming:
-  template: "{year}_{document_type}_{source}.{ext}"
-  date_format: "%Y"
-  separator: "_"
-  case: title
-metadata_fields: [year, document_type, source]
-create_subfolders: true
-examples:
-  - input: "w2_download.pdf"
-    output: "2024_W2_Employer_Name.pdf"
-    reasoning: "Extracted tax year and employer from document content"
+schema_version: 1
+id: bucket.50.20.03
+code: 50.20.03
+title: Invoices & Bills
+kind: bucket
+relative_path: 50 Money & Finance/50.20 Income & Spending/50.20.03 Invoices & Bills
+parent_id: category.50.20
+purpose: Invoices & Bills within Income & Spending.
+aliases:
+  - vendor invoice
+  - utility bill
+  - amount due
+tags:
+  - money
+  - finance
+  - income
+  - spending
+  - invoices
+  - bills
+include: []
+exclude: []
+partition: year_month
 ```
 
----
+Installed metadata is loaded back into the catalog. Editing aliases, tags, purpose,
+include, or exclude fields therefore changes local route search without rewriting code.
+The `--force` installation option intentionally replaces those edits with bundled
+defaults, so use it only when a reset is wanted.
 
-## 🔄 Movement Log & Undo
+Year and month folders also receive metadata. Their IDs are derived from the parent
+bucket and time value, keeping generated routes searchable and self-describing.
 
-Every file operation is recorded in `~/.aimv/logs/moves.jsonl`. Each entry includes:
+## Classification Pipeline
 
-- Unique ID, timestamp
-- Source and destination paths
-- Original and new filenames
-- Action type (move, rename_and_move, move_to_trash, dry_run)
-- Which rule was applied
-- SHA-256 file hash and file size
-- One-line summary of the file
-- List of any directories created during the move
-
-The `aimv undo` command uses this log to safely reverse operations. Before moving a file back, it verifies:
-
-1. The file still exists at the destination
-2. The file hash matches (hasn't been modified since the move)
-3. The original location is writable
-4. No file already exists at the original path
-
-Any empty directories that were created during the original move are cleaned up during undo.
-
----
-
-## 📇 File Index
-
-The file index at `~/.aimv/index.json` acts as a catalog of every file organized by `AI-mv`. Each entry records:
-
-- Current file path
-- One-line description (generated by the AI)
-- Category (from the matched rule)
-- Original filename and location
-- Searchable tags extracted from the summary
-
-Use `aimv index search <query>` to find files by keyword, or `aimv index list` to see everything grouped by category.
-
----
-
-## 🗂 Organization Template
-
-When you run `aimv init` or `aimv template generate`, `AI-mv` scans your key directories (`~/Documents`, `~/Downloads`, `~/Desktop`, `~/Pictures`) and saves a snapshot of your folder hierarchy to `~/.aimv/template.yaml`.
-
-This template is injected into every AI prompt, so the model always knows your current organizational structure. This means suggestions stay consistent — it won't suggest creating `~/Documents/Finances/` if you already have `~/Documents/Financial/`.
-
----
-
-## 📂 Data Directory
-
-All user state lives in `~/.aimv/`:
-
+```text
+enumerate files
+  -> prepare evidence in parallel
+  -> choose action and one of all 16 Areas
+  -> choose one of 5–8 Categories, then one of 4 Buckets
+  -> run those decision paths concurrently across files
+  -> validate typed decisions
+  -> review medium-confidence decisions in input order
+  -> commit filesystem moves sequentially
+  -> update movement log and file index
 ```
+
+The expensive stages—content extraction and model calls—run concurrently. Filesystem
+mutation and shared persistence remain ordered. This provides most of the speedup while
+avoiding duplicate destinations, interleaved questions, or corrupted JSON state.
+
+Set the default concurrency with `AIMV_BATCH_WORKERS`; override it per invocation with
+`--workers`.
+
+## Laya Decisions and Folder Routes
+
+Every final Bucket is an available outcome. AIMV does not flatten all 332 Buckets into
+one low-quality choice or discard possibilities with a top-K filter. Instead, each file
+follows the complete Taxonomy hierarchy:
+
+```text
+16 Areas -> 5–8 Categories in the chosen Area -> 4 Buckets in the chosen Category
+```
+
+Stable IDs are the machine choices. The final Laya criteria also contain the complete
+human-readable route, for example:
+
+```text
+bucket.50.20.03
+50 Money & Finance/50.20 Income & Spending/50.20.03 Invoices & Bills
+```
+
+The validated decision contains:
+
+- `action`: `move`, `trash`, or `stay`
+- `bucket_id`: the selected final hierarchical option, or null for trash/stay
+- `year` and `month`: the document's subject date when one exists
+- `tags`, `confidence`, and short reasoning
+
+Laya performs typed classification rather than free-form text generation, so AIMV keeps
+the original basename. It derives year/month locally from the filename or extracted
+content, then falls back to file modification time. The model never chooses an arbitrary
+absolute destination. Laya also does not inspect image pixels; image-only files are
+classified from filename, type, dates, and other local metadata unless the visual-capable
+generative fallback is selected. AIMV resolves the selected bucket ID locally, applies
+its time-partition policy, confines it to the managed root, and produces a collision-free
+destination.
+
+### Provider Behavior
+
+- **Local Laya (default):** one lazily initialized `laya.Router`, shared by classification
+  workers. The first call can preload model routes.
+- **Laya/Jev-compatible HTTP:** three `POST /v1/systemone` decisions per moved file,
+  using the same complete hierarchy and typed choice keys.
+- **Generative fallback:** set `AIMV_DECISION_PROVIDER=generative`. Official OpenAI uses
+  the Responses API with a strict Structured Outputs schema; Google uses native
+  `generateContent`; compatible endpoints use Chat Completions.
+
+Example fallback configuration:
+
+```bash
+export AIMV_DECISION_PROVIDER=generative
+export OPENAI_API_KEY="..."
+export OPENAI_API_BASE_URL="https://api.openai.com/v1"
+export MODEL_NAME="<supported-model>"
+```
+
+OpenAI's asynchronous Batch API is not used for interactive sorting because it is
+designed for deferred jobs. AIMV instead sends ordinary classification requests through
+a bounded local worker pool.
+
+## Time Organization
+
+Most buckets create a year directory. Categories where month-level browsing is useful,
+such as receipts, invoices, photos, videos, and reservations, create `YYYY/YYYY-MM`.
+
+AIMV recognizes numeric and named subject dates in filenames and extracted content.
+When content does not provide a meaningful date, it falls back to the file modification
+year and month. Time partitioning is a Bucket policy stored in metadata, not a
+model-generated path.
+
+## Rules Engine
+
+The existing YAML rules still contribute content hints, naming examples, and metadata
+expectations. Built-in rules cover academic files, bank statements, invoices, medical
+records, photos, receipts, and a general fallback.
+
+```bash
+aimv rules
+aimv rules --show receipts
+aimv sort --rule receipts ~/Downloads/purchase.pdf
+aimv sort --no-rules ~/Downloads/unknown.dat
+```
+
+The taxonomy is authoritative for destinations. Legacy Rule target paths are guidance;
+Laya must still reach one of the managed Bucket IDs through the complete hierarchy.
+
+## Safety Model
+
+- Dry runs do not create directories, metadata, log records, or index entries.
+- Model-generated names cannot contain paths or change the file extension.
+- Destinations must remain under the configured managed root.
+- Existing destination names receive a numeric suffix instead of being overwritten.
+- Low-confidence moves are skipped; medium-confidence moves require confirmation.
+- Trash decisions always require confirmation outside dry-run mode.
+- If persistence fails after a move, AIMV attempts to move the file back.
+- API usage claims are atomic across classification threads.
+
+## State Directory
+
+User state lives under `~/.aimv/`:
+
+```text
 ~/.aimv/
-├── config.yaml          # User configuration overrides
-├── rules/               # Custom YAML rule files
+├── config.yaml
+├── api_usage.json
+├── index.json
+├── template.yaml
 ├── logs/
-│   └── moves.jsonl      # Append-only movement log
-├── index.json           # File index
-└── template.yaml        # Organization template snapshot
+│   └── moves.jsonl
+└── rules/
 ```
 
----
+The managed files themselves live under `~/AIMV` unless `AIMV_TAXONOMY_ROOT` or the
+equivalent user configuration value changes the root.
 
-## 🧬 Real-World Example
+## Architecture
 
-Model: gemma3:12b
+The public `SmartMover` remains available for compatibility. Internally, work is split
+into deep modules with small interfaces:
 
-**Before**
+- `aimv.taxonomy` owns bucket identity, search, validation, paths, and metadata.
+- `aimv.classification` owns evidence preparation, hierarchical decisions, provider
+  schemas, and typed plans.
+- `aimv.batch` owns bounded scheduling and stable result ordering.
+- `aimv.organization` owns review policy, path safety, time routing, moves, logs, and
+  indexing.
+- `aimv.utils.llm_utils` is the provider adapter at the model seam.
+
+See `CONTEXT.md`, `docs/adr/`, and `docs/architecture/audit-2026-10-04.md` for domain
+language and the reasoning behind this structure.
+
+## Development
 
 ```bash
-~/Downloads/
-├── label.pdf                          # Nike return instructions
-├── Document_20250419_0001.pdf         # Scanned passport page
-├── HttpToolkit-1.19.3.dmg             # Installer
-├── HWSolutions10.2025.pdf             # Handwritten physics equations
-
-~/Documents/Notes/Journals/
-└── 2025-05-19.md                      # Markdown journal entry
+.venv/bin/python -m pytest -q
+.venv/bin/python -m compileall -q aimv tests
 ```
 
-**After:**
+The test suite covers the legacy rules/index/tracking behavior plus taxonomy breadth,
+semantic search, metadata round-trips, strict decision validation, time routing,
+non-mutating dry runs, path safety, and concurrent classification.
 
-```bash
-~/Documents/
-├── Legal Documents/
-│   ├── Receipts/
-│   │   └── Nike_Return_Label_1ZXXXXXXXXXXXXXXX.pdf   # Renamed w/ tracking placeholder
-│   └── Passport_Page_20250419.pdf                    # Archived passport scan
-│
-├── School/
-│   └── 2025 Spring/
-│       └── PHYS 311/
-│           └── HW/
-│               └── Homework_Solutions/
-│                   ├── SolnsHmwk9_2025.pdf           # Existing solution file
-│                   └── SolnsHmwk10_2025.pdf          # NEW — Renamed to match pattern
-│
-└── Notes/
-    └── Journals/
-        └── 2025-05-19.md                             # Recent journal — left in place
+## License
 
-~/.Trash/
-└── HttpToolkit-1.19.3.dmg                            # 3 months old installer — moved to Trash
-```
-
-```bash
-$ aimv ~/Downloads/HWSolutions10.2025.pdf
-
-Moved:
-  From: /Users/<user>/Downloads/HWSolutions10.2025.pdf
-    To: /Users/<user>/Documents/School/.../Homework_Solutions/SolnsHmwk10_2025.pdf
-
-Move logged (ID: a3f8c1d2e456)
-File indexed: SolnsHmwk10_2025.pdf
-```
-
-**Step 1:** Initial assessment notices it's a PDF in Downloads
-
-**Step 2:** Content analysis identifies handwritten equations and diagrams — rule engine matches **academic** category
-
-**Step 3:** Extracts keywords: "solutions, homework, physics, equations"
-
-**Step 4:** Searches folders, finds matching homework solutions directory
-
-**Step 5:** Examines existing files in target location for naming patterns
-
-**Step 6:** Renames file to match pattern, maintaining consistency
-
-**Step 7:** Logs the move and updates the file index
-
-To undo this move later: `aimv undo --id a3f8c1d2e456`
-`
-
-Please give it a lot of thought and respond witha great working markdown file
+GNU General Public License v3.0. See `LICENSE`.

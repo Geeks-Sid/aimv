@@ -29,6 +29,7 @@ def _init_subsystems():
     from aimv.tracking.move_log import MoveLog
     from aimv.index.file_index import FileIndex
     from aimv.templates.org_template import OrgTemplate
+    from aimv.taxonomy.catalog import TaxonomyCatalog
 
     ensure_data_dir()
     load_user_config()
@@ -43,7 +44,9 @@ def _init_subsystems():
         if os.path.exists(config.AIMV_TEMPLATE_PATH):
             org_template.load()
 
-    return rules, move_log, file_index, org_template
+    catalog = TaxonomyCatalog.load_default(config.AIMV_TAXONOMY_ROOT)
+
+    return rules, move_log, file_index, org_template, catalog
 
 
 # --------------------------------------------------------------------------- #
@@ -52,7 +55,7 @@ def _init_subsystems():
 
 def cmd_sort(args):
     """Handle the 'sort' subcommand — organize a single file."""
-    check_dependencies()
+    dependencies = check_dependencies()
 
     file_path = args.file_path
     if not os.path.exists(file_path):
@@ -62,7 +65,16 @@ def cmd_sort(args):
         print(f"Error: Path '{file_path}' is not a file.")
         sys.exit(1)
 
-    rules, move_log, file_index, org_template = _init_subsystems()
+    rules, move_log, file_index, org_template, catalog = _init_subsystems()
+
+    if getattr(args, "no_rules", False):
+        rules = []
+    elif getattr(args, "rule", None):
+        forced = [rule for rule in rules if rule.name == args.rule]
+        if not forced:
+            print(f"Error: No rule named '{args.rule}'.")
+            sys.exit(1)
+        rules = forced
 
     from aimv.core import SmartMover
 
@@ -74,8 +86,12 @@ def cmd_sort(args):
             file_index=file_index,
             org_template=org_template,
             dry_run=getattr(args, "dry_run", False),
+            catalog=catalog,
+            dependencies=dependencies,
         )
-        mover.sort_file()
+        outcome = mover.sort_file()
+        if outcome.status == "failed":
+            sys.exit(1)
     except Exception as e:
         print(f"Critical error: {e}")
         traceback.print_exc()
@@ -84,16 +100,18 @@ def cmd_sort(args):
 
 def cmd_batch(args):
     """Handle the 'batch' subcommand — organize all files in a directory."""
-    check_dependencies()
+    dependencies = check_dependencies()
 
     directory = args.directory
     if not os.path.isdir(directory):
         print(f"Error: '{directory}' is not a directory.")
         sys.exit(1)
 
-    rules, move_log, file_index, org_template = _init_subsystems()
+    rules, move_log, file_index, org_template, catalog = _init_subsystems()
 
-    from aimv.core import SmartMover
+    from aimv.batch import BatchOrganizer
+    from aimv.core import create_file_classifier
+    from aimv.organization.committer import OrganizationCommitter
 
     files = [
         os.path.join(directory, f)
@@ -106,31 +124,43 @@ def cmd_batch(args):
         print(f"No files found in '{directory}'.")
         return
 
-    print(f"Found {len(files)} files to process in '{directory}'.\n")
+    workers = max(1, getattr(args, "workers", config.BATCH_CLASSIFICATION_WORKERS))
+    print(
+        f"Found {len(files)} files. Classifying with up to {workers} parallel workers.\n"
+    )
     dry_run = getattr(args, "dry_run", False)
-    successes, failures = 0, 0
+    classifier = create_file_classifier(
+        rules=rules,
+        catalog=catalog,
+        dependencies=dependencies,
+    )
+    committer = OrganizationCommitter(
+        catalog=catalog,
+        move_log=move_log,
+        file_index=file_index,
+        dry_run=dry_run,
+    )
 
-    for i, file_path in enumerate(files, 1):
-        print(f"\n{'='*60}")
-        print(f"[{i}/{len(files)}] Processing: {os.path.basename(file_path)}")
-        print(f"{'='*60}")
-        try:
-            mover = SmartMover(
-                file_path,
-                rules=rules,
-                move_log=move_log,
-                file_index=file_index,
-                org_template=org_template,
-                dry_run=dry_run,
-            )
-            mover.sort_file()
-            successes += 1
-        except Exception as e:
-            print(f"Error processing {file_path}: {e}")
-            failures += 1
+    def report_progress(completed, total, path):
+        print(f"[{completed}/{total}] Classified {os.path.basename(path)}")
 
-    print(f"\n{'='*60}")
-    print(f"Batch complete: {successes} succeeded, {failures} failed out of {len(files)} files.")
+    summary = BatchOrganizer(
+        classifier,
+        committer,
+        workers=workers,
+        on_classified=report_progress,
+    ).run(files)
+
+    print("\nResults:")
+    for outcome in summary.outcomes:
+        destination = f" -> {outcome.destination_path}" if outcome.destination_path else ""
+        print(f"  [{outcome.status}] {os.path.basename(outcome.source_path)}{destination}")
+        if outcome.status in {"failed", "skipped"}:
+            print(f"    {outcome.message}")
+    print(
+        f"\nBatch complete: {summary.succeeded} succeeded, {summary.skipped} skipped, "
+        f"{summary.failed} failed out of {len(files)} files."
+    )
 
 
 def cmd_undo(args):
@@ -314,6 +344,52 @@ def cmd_usage(args):
     print(tracker.get_summary())
 
 
+def cmd_taxonomy(args):
+    """Install, inspect, search, or validate the managed folder taxonomy."""
+    from aimv.taxonomy.catalog import TaxonomyCatalog
+
+    catalog = TaxonomyCatalog.load_default(
+        getattr(args, "root", None) or config.AIMV_TAXONOMY_ROOT
+    )
+    action = args.taxonomy_action
+
+    if action == "install":
+        written = catalog.materialize(
+            overwrite_metadata=getattr(args, "force", False)
+        )
+        print(f"Installed {len(catalog.buckets)} buckets under {catalog.root}")
+        print(f"Wrote {written} hidden metadata files.")
+    elif action == "search":
+        matches = catalog.search(args.query, args.limit)
+        for match in matches:
+            print(
+                f"{match.bucket.id:22s} score={match.score:5.1f}  "
+                f"{match.bucket.relative_path}"
+            )
+            print(f"  {match.bucket.purpose}")
+    elif action == "validate":
+        errors = catalog.validate()
+        if errors:
+            for error in errors:
+                print(f"ERROR: {error}")
+            sys.exit(1)
+        print(
+            f"Taxonomy valid: {len(catalog.nodes)} managed folders, "
+            f"{len(catalog.buckets)} leaf buckets."
+        )
+    else:
+        print(
+            f"AIMV taxonomy: {len(catalog.buckets)} leaf buckets under {catalog.root}\n"
+        )
+        for node in catalog.nodes:
+            if node.kind == "area":
+                area_prefix = node.code + "."
+                count = sum(
+                    bucket.code.startswith(area_prefix) for bucket in catalog.buckets
+                )
+                print(f"  {node.code:>3s}  {node.title} ({count} buckets)")
+
+
 def cmd_init(args):
     """Handle the 'init' subcommand — initialize ~/.aimv/ data directory."""
     ensure_data_dir()
@@ -322,6 +398,7 @@ def cmd_init(args):
     print(f"  Rules:    {config.AIMV_USER_RULES_DIR}/")
     print(f"  Index:    {config.AIMV_INDEX_PATH}")
     print(f"  Template: {config.AIMV_TEMPLATE_PATH}")
+    print(f"  Taxonomy: {config.AIMV_TAXONOMY_ROOT}")
 
     from aimv.templates.org_template import OrgTemplate
 
@@ -331,6 +408,15 @@ def cmd_init(args):
         org_template.generate(config.TEMPLATE_ROOT_DIRS, config.TEMPLATE_SCAN_DEPTH)
         org_template.save()
         print(f"Template saved.")
+
+    from aimv.taxonomy.catalog import TaxonomyCatalog
+
+    catalog = TaxonomyCatalog.load_default(config.AIMV_TAXONOMY_ROOT)
+    written = catalog.materialize()
+    print(
+        f"Installed {len(catalog.buckets)} managed buckets "
+        f"({written} metadata files written)."
+    )
 
     print("\nAIMV is ready. Use 'aimv sort <file>' to organize a file.")
 
@@ -362,6 +448,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_batch = subparsers.add_parser("batch", help="Organize all files in a directory")
     p_batch.add_argument("directory", help="Directory containing files to organize")
     p_batch.add_argument("--dry-run", action="store_true", help="Preview without moving")
+    p_batch.add_argument(
+        "--workers",
+        type=int,
+        default=config.BATCH_CLASSIFICATION_WORKERS,
+        help="Maximum concurrent classification requests",
+    )
     p_batch.set_defaults(func=cmd_batch)
 
     # --- undo ---
@@ -398,6 +490,24 @@ def build_parser() -> argparse.ArgumentParser:
     p_usage = subparsers.add_parser("usage", help="View or reset daily API usage")
     p_usage.add_argument("--reset", action="store_true", help="Reset today's usage counter")
     p_usage.set_defaults(func=cmd_usage)
+
+    # --- taxonomy ---
+    p_taxonomy = subparsers.add_parser(
+        "taxonomy", help="Manage the searchable 200+ bucket folder taxonomy"
+    )
+    p_taxonomy.add_argument(
+        "taxonomy_action",
+        nargs="?",
+        default="list",
+        choices=["list", "search", "install", "validate"],
+    )
+    p_taxonomy.add_argument("query", nargs="?", default="")
+    p_taxonomy.add_argument("--limit", type=int, default=12)
+    p_taxonomy.add_argument("--root", default=None, help="Override the managed root")
+    p_taxonomy.add_argument(
+        "--force", action="store_true", help="Refresh existing folder metadata"
+    )
+    p_taxonomy.set_defaults(func=cmd_taxonomy)
 
     # --- init ---
     p_init = subparsers.add_parser("init", help="Initialize ~/.aimv/ data directory")

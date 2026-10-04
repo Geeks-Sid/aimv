@@ -28,5 +28,11 @@ dependencies = [
 [project.scripts]
 aimv = "aimv.cli:main"
 
+[project.optional-dependencies]
+laya = ["laya>=0.3.20"]
+
 [tool.setuptools.packages.find]
 where = [""]
+
+[tool.setuptools.package-data]
+aimv = ["rules/defaults/*.yaml", "taxonomy/defaults/*.yaml"]

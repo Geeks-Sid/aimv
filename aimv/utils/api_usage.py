@@ -8,6 +8,7 @@ both a daily cap and a per-minute (RPM) rate limit.
 import json
 import os
 import time
+import threading
 from collections import deque
 from datetime import date, datetime
 from typing import Deque, Dict, Optional
@@ -26,6 +27,7 @@ class APIUsageTracker:
         self.rpm_limit = rpm_limit
         self._data: Dict = self._load()
         self._recent_timestamps: Deque[float] = deque()
+        self._lock = threading.RLock()
 
     def _load(self) -> Dict:
         if not os.path.exists(self.usage_path):
@@ -57,10 +59,12 @@ class APIUsageTracker:
         return self._data["days"][key]
 
     def calls_today(self) -> int:
-        return self._today_entry()["calls"]
+        with self._lock:
+            return self._today_entry()["calls"]
 
     def remaining_today(self) -> int:
-        return max(0, self.daily_limit - self.calls_today())
+        with self._lock:
+            return max(0, self.daily_limit - self._today_entry()["calls"])
 
     def _prune_rpm_window(self) -> None:
         """Remove timestamps older than 60 seconds from the sliding window."""
@@ -70,6 +74,10 @@ class APIUsageTracker:
 
     def check_limit(self) -> None:
         """Raise APILimitExceeded if daily limit hit; sleep if RPM limit hit."""
+        with self._lock:
+            self._check_limit_unlocked()
+
+    def _check_limit_unlocked(self) -> None:
         if self.daily_limit > 0 and self.calls_today() >= self.daily_limit:
             raise APILimitExceeded(
                 f"Daily API call limit reached ({self.daily_limit} calls). "
@@ -88,6 +96,10 @@ class APIUsageTracker:
 
     def record_call(self) -> int:
         """Increment today's call count, track RPM timestamp, and return new total."""
+        with self._lock:
+            return self._record_call_unlocked()
+
+    def _record_call_unlocked(self) -> int:
         entry = self._today_entry()
         now = datetime.now().isoformat(timespec="seconds")
         entry["calls"] += 1
@@ -98,21 +110,31 @@ class APIUsageTracker:
         self._save()
         return entry["calls"]
 
+    def claim_call(self) -> int:
+        """Atomically wait/check limits and reserve one outbound API attempt."""
+        with self._lock:
+            self._check_limit_unlocked()
+            return self._record_call_unlocked()
+
     def reset_today(self) -> None:
         """Reset today's usage counter."""
-        key = self._today_key()
-        self._data["days"].pop(key, None)
-        self._save()
+        with self._lock:
+            key = self._today_key()
+            self._data["days"].pop(key, None)
+            self._save()
 
     def get_summary(self, last_n_days: int = 7) -> str:
         """Return a human-readable usage summary."""
-        today = self._today_key()
-        entry = self._today_entry()
-        used = entry["calls"]
-        limit = self.daily_limit
+        with self._lock:
+            today = self._today_key()
+            entry = dict(self._today_entry())
+            used = entry["calls"]
+            limit = self.daily_limit
+            remaining = max(0, limit - used)
+            days = dict(self._data["days"])
 
         lines = [
-            f"Daily limit:  {used}/{limit} calls ({self.remaining_today()} remaining)",
+            f"Daily limit:  {used}/{limit} calls ({remaining} remaining)",
             f"RPM limit:    {self.rpm_limit} calls/minute"
             + (f" (0 = unlimited)" if self.rpm_limit <= 0 else ""),
             f"Date:         {today}",
@@ -123,12 +145,12 @@ class APIUsageTracker:
         if entry["last_call"]:
             lines.append(f"  Last call:  {entry['last_call']}")
 
-        sorted_days = sorted(self._data["days"].keys(), reverse=True)
+        sorted_days = sorted(days.keys(), reverse=True)
         history = [d for d in sorted_days if d != today][:last_n_days]
         if history:
             lines.append(f"\nRecent history:")
             for day_key in history:
-                day_data = self._data["days"][day_key]
+                day_data = days[day_key]
                 lines.append(f"  {day_key}: {day_data['calls']} calls")
 
         return "\n".join(lines)

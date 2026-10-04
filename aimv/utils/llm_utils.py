@@ -72,6 +72,10 @@ class LLMHelper:
         name = (self.model_name or "").lower()
         return name.startswith("gemini") or name.startswith("gpt-")
 
+    def _uses_openai_responses(self) -> bool:
+        parsed = urlparse(self.base_url or "")
+        return parsed.netloc.lower() == "api.openai.com"
+
     def _convert_openai_messages_to_google_contents(
         self, messages: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
@@ -116,6 +120,34 @@ class LLMHelper:
                 contents.append({"role": google_role, "parts": parts})
 
         return contents
+
+    @staticmethod
+    def _convert_messages_to_responses_input(
+        messages: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Convert Chat Completions content parts to Responses input parts."""
+        converted: List[Dict[str, Any]] = []
+        for message in messages:
+            raw_content = message.get("content", "")
+            if not isinstance(raw_content, list):
+                converted.append(
+                    {"role": message.get("role", "user"), "content": str(raw_content)}
+                )
+                continue
+            parts: List[Dict[str, Any]] = []
+            for part in raw_content:
+                if not isinstance(part, dict):
+                    continue
+                if part.get("type") == "text":
+                    parts.append({"type": "input_text", "text": part.get("text", "")})
+                elif part.get("type") == "image_url":
+                    image_url = (part.get("image_url") or {}).get("url")
+                    if image_url:
+                        parts.append({"type": "input_image", "image_url": image_url})
+            converted.append(
+                {"role": message.get("role", "user"), "content": parts}
+            )
+        return converted
 
     def _call_google_generate_content(
         self,
@@ -177,6 +209,7 @@ class LLMHelper:
         temperature: float = 0.1,
         max_tokens: int = 1000,
         json_mode: bool = False,
+        json_schema: Optional[dict] = None,
     ) -> Optional[str]:
         """
         Call the LLM API.
@@ -190,9 +223,10 @@ class LLMHelper:
         Returns:
             The content of the LLM response, or None if an error occurred.
         """
+        claimed_count = None
         if self.usage_tracker:
             try:
-                self.usage_tracker.check_limit()
+                claimed_count = self.usage_tracker.claim_call()
             except APILimitExceeded as e:
                 print(f"\n!!! API LIMIT: {e}")
                 return None
@@ -209,6 +243,30 @@ class LLMHelper:
                 if not content:
                     print("Error calling LLM: Empty response from Google API")
                     return None
+            elif (
+                json_schema
+                and self._uses_openai_responses()
+                and self.client is not None
+                and hasattr(self.client, "responses")
+            ):
+                if self.client is None:
+                    raise RuntimeError("OpenAI client is not initialized for this provider.")
+                response = self.client.responses.create(
+                    model=self.model_name,
+                    input=self._convert_messages_to_responses_input(messages),
+                    temperature=temperature,
+                    max_output_tokens=max_tokens,
+                    store=False,
+                    text={
+                        "format": {
+                            "type": "json_schema",
+                            "name": "aimv_classification_decision",
+                            "strict": True,
+                            "schema": json_schema,
+                        }
+                    },
+                )
+                content = response.output_text.strip()
             else:
                 if self.client is None:
                     raise RuntimeError("OpenAI client is not initialized for this provider.")
@@ -218,12 +276,21 @@ class LLMHelper:
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )
-                if json_mode and self._supports_json_mode():
+                if json_schema and self._supports_json_mode():
+                    kwargs["response_format"] = {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "aimv_classification_decision",
+                            "strict": True,
+                            "schema": json_schema,
+                        },
+                    }
+                elif json_mode and self._supports_json_mode():
                     kwargs["response_format"] = {"type": "json_object"}
                 response = self.client.chat.completions.create(**kwargs)
                 content = response.choices[0].message.content.strip()
             if self.usage_tracker:
-                count = self.usage_tracker.record_call()
+                count = claimed_count or self.usage_tracker.calls_today()
                 remaining = self.usage_tracker.remaining_today()
                 print(f"[API usage: {count} today, {remaining} remaining]")
 
@@ -264,6 +331,7 @@ class LLMHelper:
         messages: List[Dict[str, Any]],
         temperature: float = 0.1,
         max_tokens: int = 800,
+        json_schema: Optional[dict] = None,
     ) -> Optional[dict]:
         """Call LLM with JSON mode enabled and return a parsed dict.
 
@@ -276,6 +344,7 @@ class LLMHelper:
                 temperature=temperature,
                 max_tokens=max_tokens,
                 json_mode=True,
+                json_schema=json_schema,
             )
             if raw is None:
                 if attempt < self.max_retries:
